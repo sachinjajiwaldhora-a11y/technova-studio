@@ -3387,16 +3387,6 @@
       }
     }
 
-    .hover\:border-red-500\/40:hover {
-      border-color: #fb2c3666;
-    }
-
-    @supports (color: color-mix(in lab, red, red)) {
-      .hover\:border-red-500\/40:hover {
-        border-color: color-mix(in oklab, var(--color-red-500) 40%, transparent);
-      }
-    }
-
     .hover\:border-red-500\/50:hover {
       border-color: #fb2c3680;
     }
