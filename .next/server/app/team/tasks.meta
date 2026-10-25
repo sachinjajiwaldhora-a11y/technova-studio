@@ -1,0 +1,41 @@
+{
+  "status": 307,
+  "headers": {
+    "location": "/team",
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/team/layout,_N_T_/team/tasks/layout,_N_T_/team/tasks/page,_N_T_/team/tasks"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/team/tasks/__PAGE__"
+  ],
+  "prefetchHints": {
+    "hints": 64,
+    "slots": {
+      "children": {
+        "hints": 96,
+        "slots": {
+          "children": {
+            "hints": 96,
+            "slots": {
+              "children": {
+                "hints": 160,
+                "slots": null
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/9efd23a6a90a1479c3acc1d1401ae3202b11b21098357452d64bd4e9595df672/$/team/tasks",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/team/tasks/page"
+    },
+    "isFallback": false
+  }
+}
