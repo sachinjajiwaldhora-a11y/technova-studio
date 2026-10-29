@@ -7,7 +7,7 @@
    1. Dark Tech ("Hacker Terminal")
    2. Minimal Clean ("Swiss Style")
    3. Bold Gradient ("Modern SaaS")
-   4. Neo-Brutalism ("Creative Studio")
+   4. Dark Pro ("Professional Workspace")
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root,
@@ -104,35 +104,35 @@
   --font-mono: ui-monospace, "JetBrains Mono", monospace;
 }
 
-[data-theme="neo-brutalism"] {
-  --theme-id: "neo-brutalism";
-  --bg: #fffdf0;
-  --bg-secondary: #fef08a;
-  --surface: #ffffff;
-  --surface-card: #fef9c3;
-  --surface-elevated: #fed7aa;
-  --surface-glass: #ffffff;
-  --text: #000000;
-  --text-muted: #1c1917;
-  --text-dim: #44403c;
-  --accent: #f43f5e;
-  --accent-2: #06b6d4;
-  --accent-hover: #e11d48;
+[data-theme="dark-pro"] {
+  --theme-id: "dark-pro";
+  --bg: #171717;
+  --bg-secondary: #1f1f1f;
+  --surface: #212121;
+  --surface-card: #262626;
+  --surface-elevated: #2a2a2a;
+  --surface-glass: rgba(38, 38, 38, 0.85);
+  --text: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --accent: #3b82f6;
+  --accent-2: #60a5fa;
+  --accent-hover: #2563eb;
   --accent-contrast: #ffffff;
-  --border: #000000;
-  --border-strong: #000000;
-  --border-width: 3px;
-  --radius: 0px;
-  --radius-lg: 0px;
-  --radius-full: 0px;
-  --shadow: 5px 5px 0px #000000;
-  --shadow-lg: 8px 8px 0px #000000;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-width: 1px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
   --glow-color: transparent;
-  --badge-bg: #facc15;
-  --badge-text: #000000;
-  --font-heading: "Space Grotesk", Impact, system-ui, sans-serif;
-  --font-body: system-ui, -apple-system, sans-serif;
-  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+  --badge-bg: rgba(59, 130, 246, 0.12);
+  --badge-text: #93c5fd;
+  --font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -204,11 +204,6 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-lg);
 }
 
-[data-theme="neo-brutalism"] .theme-card-hover:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 7px 7px 0px #000000;
-}
-
 .theme-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -229,11 +224,6 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-1px);
 }
 
-[data-theme="neo-brutalism"] .theme-btn-primary:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0px #000000;
-}
-
 .theme-btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -251,15 +241,6 @@ h1, h2, h3, h4, h5, h6 {
 .theme-btn-secondary:hover {
   border-color: var(--accent);
   color: var(--text);
-}
-
-[data-theme="neo-brutalism"] .theme-btn-secondary {
-  box-shadow: 3px 3px 0px #000000;
-}
-
-[data-theme="neo-brutalism"] .theme-btn-secondary:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0px #000000;
 }
 
 .theme-badge {
@@ -376,32 +357,6 @@ h1, h2, h3, h4, h5, h6 {
   animation: float-reverse 9s ease-in-out infinite;
 }
 
-/* Neo-Brutalism Gentle Wobble */
-@keyframes brutal-wobble-1 {
-  0%, 100% {
-    transform: rotate(12deg) translateY(0px);
-  }
-  50% {
-    transform: rotate(15deg) translateY(-6px);
-  }
-}
-
-@keyframes brutal-wobble-2 {
-  0%, 100% {
-    transform: rotate(-6deg) translateY(0px);
-  }
-  50% {
-    transform: rotate(-4deg) translateY(6px);
-  }
-}
-
-.animate-brutal-wobble-1 {
-  animation: brutal-wobble-1 5s ease-in-out infinite;
-}
-.animate-brutal-wobble-2 {
-  animation: brutal-wobble-2 6s ease-in-out infinite;
-}
-
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
@@ -414,9 +369,7 @@ h1, h2, h3, h4, h5, h6 {
   .animate-aurora-2,
   .animate-aurora-3,
   .animate-float-slow,
-  .animate-float-reverse,
-  .animate-brutal-wobble-1,
-  .animate-brutal-wobble-2 {
+  .animate-float-reverse {
     animation: none !important;
   }
 }

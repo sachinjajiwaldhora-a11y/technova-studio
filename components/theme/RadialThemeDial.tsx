@@ -44,12 +44,12 @@ const QUADRANTS: QuadrantInfo[] = [
     labelPosition: { x: 110, y: 185 },
   },
   {
-    id: 'neo-brutalism',
-    name: 'Neo-Brutalism',
-    shortName: 'STUDIO',
+    id: 'dark-pro',
+    name: 'Dark Pro',
+    shortName: 'PRO',
     angle: 270,
-    accent: '#f43f5e',
-    bg: '#fef08a',
+    accent: '#3b82f6',
+    bg: '#171717',
     labelPosition: { x: 35, y: 110 },
   },
 ];
@@ -81,7 +81,7 @@ export default function RadialThemeDial() {
         setTheme('bold-gradient');
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        setTheme('neo-brutalism');
+        setTheme('dark-pro');
       }
     };
 
@@ -250,3 +250,4 @@ export default function RadialThemeDial() {
     </div>
   );
 }
+

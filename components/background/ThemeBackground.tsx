@@ -208,54 +208,56 @@ export default function ThemeBackground() {
       </div>
 
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* THEME 4: NEO-BRUTALISM (Creative Studio) */}
+      {/* THEME 4: DARK PROFESSIONAL (Calm Workspace) */}
       {/* ─────────────────────────────────────────────────────────────────── */}
       <div
         className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
-          theme === 'neo-brutalism' ? 'opacity-100' : 'opacity-0'
+          theme === 'dark-pro' ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {/* Flat Geometric Shapes with Thick Black Borders & Hard Shadows */}
-        {/* Shape 1: Yellow Diamond / Square (Top-Left) */}
+        {/* Subtle Fine Grain Overlay */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
+          <filter id="pro-grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch" />
+            <feColorMatrix type="saturate" values="0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#pro-grain)" />
+        </svg>
+
+        {/* Faint Calm Ambient Accent Glows (Very Low Opacity) */}
         <div
-          className={`absolute top-20 left-8 sm:left-14 w-14 sm:w-20 h-14 sm:h-20 bg-[#facc15] border-[3px] border-black shadow-[4px_4px_0px_#000] rotate-12 opacity-80 ${
-            isMobile ? '' : 'animate-brutal-wobble-1'
-          }`}
+          className="absolute -top-24 right-1/4 w-[36rem] h-[36rem] rounded-full blur-[140px] opacity-20 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute bottom-1/4 left-12 w-[32rem] h-[32rem] rounded-full blur-[120px] opacity-15 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(96, 165, 250, 0.08) 0%, transparent 70%)',
+          }}
         />
 
-        {/* Shape 2: Hot Pink Pill (Top-Right) */}
-        <div
-          className={`absolute top-28 right-8 sm:right-20 px-4 py-2 bg-[#f43f5e] text-white font-mono text-[10px] font-black border-[3px] border-black shadow-[5px_5px_0px_#000] -rotate-6 opacity-85 ${
-            isMobile ? '' : 'animate-brutal-wobble-2'
-          }`}
-        >
-          // BUILD FAST
-        </div>
+        {/* Minimal Subtle Grid Accent (Desktop only) */}
+        {!isMobile && (
+          <div
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{
+              backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+              backgroundSize: '48px 48px',
+            }}
+          />
+        )}
 
-        {/* Shape 3: Electric Cyan Circle (Bottom-Right) */}
-        <div
-          className={`absolute bottom-36 right-10 sm:right-24 w-16 sm:w-24 h-16 sm:h-24 rounded-full bg-[#06b6d4] border-[3px] border-black shadow-[5px_5px_0px_#000] opacity-80 ${
-            isMobile ? '' : 'animate-brutal-wobble-1'
-          }`}
-        />
-
-        {/* Shape 4: Lime Green Stamp (Bottom-Left) */}
-        <div
-          className={`absolute bottom-40 left-6 sm:left-16 p-2.5 bg-[#4ade80] border-[3px] border-black shadow-[4px_4px_0px_#000] rotate-6 font-mono text-[9px] font-black text-black opacity-85 ${
-            isMobile ? '' : 'animate-brutal-wobble-2'
-          }`}
-        >
-          ★ 120 FPS
-        </div>
-
-        {/* Calm Central Window so headline remains clean & readable */}
+        {/* Central Calm Mask (ensures WCAG AA headline readability) */}
         <div
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(circle at 50% 40%, rgba(255, 253, 240, 0.8) 0%, transparent 75%)',
+            background: 'radial-gradient(circle at 50% 40%, rgba(23, 23, 23, 0.4) 0%, rgba(23, 23, 23, 0.85) 85%)',
           }}
         />
       </div>
     </div>
   );
 }
+

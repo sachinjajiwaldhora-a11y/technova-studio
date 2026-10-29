@@ -150,9 +150,9 @@ export default function CommandPalette({
     },
     {
       category: 'THEMES',
-      label: 'SWITCH THEME // NEO-BRUTALISM (CREATIVE STUDIO)',
-      cmd: '/theme brutalist',
-      action: () => setTheme('neo-brutalism'),
+      label: 'SWITCH THEME // DARK PROFESSIONAL (CALM WORKSPACE)',
+      cmd: '/theme pro',
+      action: () => setTheme('dark-pro'),
     },
   ];
 
@@ -243,3 +243,4 @@ export default function CommandPalette({
     </div>
   );
 }
+

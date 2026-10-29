@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type ThemeType = 'dark-tech' | 'minimal-clean' | 'bold-gradient' | 'neo-brutalism';
+export type ThemeType = 'dark-tech' | 'minimal-clean' | 'bold-gradient' | 'dark-pro';
 
 export interface ThemeMeta {
   id: ThemeType;
@@ -51,15 +51,15 @@ export const THEMES: Record<ThemeType, ThemeMeta> = {
       border: 'rgba(165, 180, 252, 0.25)',
     },
   },
-  'neo-brutalism': {
-    id: 'neo-brutalism',
-    name: 'Neo-Brutalism',
-    tagline: 'Creative Studio // Hard Shadows',
+  'dark-pro': {
+    id: 'dark-pro',
+    name: 'Dark Pro',
+    tagline: 'Calm Workspace // Neutral Charcoal',
     colors: {
-      bg: '#fffbeb',
-      accent: '#f43f5e',
-      accent2: '#06b6d4',
-      border: '#000000',
+      bg: '#171717',
+      accent: '#3b82f6',
+      accent2: '#60a5fa',
+      border: 'rgba(255, 255, 255, 0.1)',
     },
   },
 };
@@ -80,12 +80,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // 1. Read existing saved theme or system preference
+    // 1. Read existing saved theme or system preference with legacy migration
     let initial: ThemeType = 'dark-tech';
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) as ThemeType;
-      if (saved && THEMES[saved]) {
-        initial = saved;
+      const saved = localStorage.getItem(STORAGE_KEY) as string | null;
+      if (saved && THEMES[saved as ThemeType]) {
+        initial = saved as ThemeType;
+      } else if (saved === 'neo-brutalism' || saved === 'brutalist') {
+        initial = 'dark-tech';
+        localStorage.setItem(STORAGE_KEY, 'dark-tech');
       } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
         initial = 'minimal-clean';
       }
@@ -110,7 +113,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const cycleTheme = () => {
-    const list: ThemeType[] = ['dark-tech', 'minimal-clean', 'bold-gradient', 'neo-brutalism'];
+    const list: ThemeType[] = ['dark-tech', 'minimal-clean', 'bold-gradient', 'dark-pro'];
     const idx = list.indexOf(theme);
     const next = list[(idx + 1) % list.length];
     setTheme(next);
