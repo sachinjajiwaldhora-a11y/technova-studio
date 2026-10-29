@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "seed:mongo": "node scripts/seed-mongodb.mjs"
+    "seed:mongo": "node scripts/seed-mongodb.mjs",
+    "seed:cms": "node scripts/seed-cms.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
