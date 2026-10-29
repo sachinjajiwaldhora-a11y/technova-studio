@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  StudioMember, STORAGE_KEYS, getStore, setStore, initStore, SEED_MEMBERS, supabase,
+  StudioMember, STORAGE_KEYS, getStore, setStore, initStore, SEED_MEMBERS,
 } from '@/lib/store';
 import { Shield, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
@@ -25,45 +25,33 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    // 1. If Supabase is connected, check cloud database first
-    if (supabase) {
-      try {
-        const { data, error: sbError } = await supabase
-          .from('studio_members')
-          .select('*')
-          .ilike('email', email.trim())
-          .eq('password', password)
-          .maybeSingle();
+    // 1. Check MongoDB Cloud Database via /api/auth/login
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
 
-        if (data && !sbError) {
-          const cloudMember: StudioMember = {
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            password: data.password,
-            role: data.role,
-            department: data.department,
-            skills: data.skills || [],
-            clearanceCode: data.clearance_code || data.clearanceCode || 'LVL-05',
-            photoInitials: data.photo_initials || data.photoInitials || data.name.slice(0, 2).toUpperCase(),
-            accentColor: data.accent_color || data.accentColor || '#dc2626',
-            privateNotes: data.private_notes || '',
-            managerNotes: data.manager_notes || '',
-            activeProjectIds: data.active_project_ids || [],
-            metrics: data.metrics || { tasksCompleted: 0, tasksOverdue: 0, avgCompletionDays: 0, hoursLoggedTotal: 0, deliveryRatePct: 100 },
-            createdAt: data.created_at || new Date().toISOString(),
-            lastActive: new Date().toISOString(),
-          };
-          setStore(STORAGE_KEYS.ACTIVE_USER, cloudMember);
-          router.push('/team');
-          return;
-        }
-      } catch (err) {
-        console.warn('Supabase auth fallback:', err);
+      const result = await res.json();
+
+      if (res.ok && result.success && result.user) {
+        setStore(STORAGE_KEYS.ACTIVE_USER, result.user);
+        router.push('/team');
+        return;
       }
+
+      // If credentials were explicitly rejected by MongoDB
+      if (res.status === 401) {
+        setError(result.error || 'ACCESS DENIED // INVALID CREDENTIALS OR CLEARANCE KEY');
+        setIsLoading(false);
+        return;
+      }
+    } catch (apiErr) {
+      // MongoDB endpoint not reachable, continue to local storage fallback
     }
 
-    // 2. Fallback to LocalStorage store
+    // 2. Fallback to LocalStorage store (if offline or database unconfigured)
     setTimeout(() => {
       const matched = getStore(STORAGE_KEYS.MEMBERS, SEED_MEMBERS).find(
         (u) =>

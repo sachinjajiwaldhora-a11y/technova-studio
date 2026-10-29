@@ -7,12 +7,13 @@ import { getPermissions } from '@/lib/rbac';
 import { usePortalTheme, PortalTheme } from '@/lib/portal-theme';
 import {
   LayoutDashboard, Briefcase, Users, BarChart3, Megaphone,
-  Globe, Database, Settings, LogOut, Home, Shield, ChevronRight, Palette,
+  Globe, Database, Settings, LogOut, Home, Shield, ChevronRight, Palette, UserPlus,
 } from 'lucide-react';
 
 export type DashboardTab =
   | 'OVERVIEW'
   | 'PROJECTS'
+  | 'LEADS'
   | 'INQUIRIES'
   | 'TEAM'
   | 'ANALYTICS'
@@ -32,16 +33,18 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'OVERVIEW',      label: 'OVERVIEW',     sublabel: '01 // COMMAND CENTER',  icon: LayoutDashboard },
   { id: 'PROJECTS',      label: 'PROJECTS',     sublabel: '02 // ENGINEERING HUB', icon: Briefcase },
-  { id: 'INQUIRIES',     label: 'INQUIRIES',    sublabel: '03 // CLIENT PIPELINE', icon: Globe,
+  { id: 'LEADS',         label: 'LEADS',        sublabel: '03 // SALES PIPELINE',   icon: UserPlus,
+    requirePerm: (p) => p.canViewLeads },
+  { id: 'INQUIRIES',     label: 'INQUIRIES',    sublabel: '04 // CLIENT PIPELINE', icon: Globe,
     requirePerm: (p) => p.canViewAllInquiries || p.canCreateInquiry },
-  { id: 'TEAM',          label: 'TEAM',         sublabel: '04 // STUDIO ROSTER',   icon: Users,
+  { id: 'TEAM',          label: 'TEAM',         sublabel: '05 // STUDIO ROSTER',   icon: Users,
     requirePerm: (p) => p.canViewAllMembers },
-  { id: 'ANALYTICS',    label: 'ANALYTICS',    sublabel: '05 // TELEMETRY DATA',  icon: BarChart3,
+  { id: 'ANALYTICS',    label: 'ANALYTICS',    sublabel: '06 // TELEMETRY DATA',  icon: BarChart3,
     requirePerm: (p) => p.canViewAnalytics },
-  { id: 'ANNOUNCEMENTS',label: 'DISPATCH',     sublabel: '06 // STUDIO NOTICES',  icon: Megaphone },
-  { id: 'CMS',           label: 'PUBLIC CMS',   sublabel: '07 // WEBSITE MATRIX',  icon: Globe,
+  { id: 'ANNOUNCEMENTS',label: 'DISPATCH',     sublabel: '07 // STUDIO NOTICES',  icon: Megaphone },
+  { id: 'CMS',           label: 'PUBLIC CMS',   sublabel: '08 // WEBSITE MATRIX',  icon: Globe,
     requirePerm: (p) => p.canManagePortfolioCMS || p.canManageAboutUs, adminOnly: false },
-  { id: 'RBAC_SETTINGS', label: 'ACCESS CTRL', sublabel: '08 // RBAC SETTINGS',   icon: Settings,
+  { id: 'RBAC_SETTINGS', label: 'ACCESS CTRL', sublabel: '09 // RBAC SETTINGS',   icon: Settings,
     requirePerm: (p) => p.canToggleMemberPermissions },
 ];
 
@@ -230,7 +233,7 @@ export default function DashboardShell({
 
       {/* ── MOBILE BOTTOM NAV ────────────────────────────────── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[var(--portal-sidebar,#050505)] border-t portal-border flex overflow-x-auto">
-        {visibleTabs.slice(0, 7).map((item) => {
+        {visibleTabs.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (

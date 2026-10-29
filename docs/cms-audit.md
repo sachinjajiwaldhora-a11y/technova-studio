@@ -79,3 +79,4 @@
    - Add theme switcher in the portal header with persistence and WCAG AA contrast check.
 6. **Phase 6 & 7: Verification & Report**
    - Run typecheck, build, test endpoints, verify permissions, and produce `/docs/cms-report.md`.
+

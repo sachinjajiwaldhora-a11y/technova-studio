@@ -270,3 +270,4 @@ export default function FormsConfigEditor({ data, onChange }: FormsConfigEditorP
     </div>
   );
 }
+

@@ -54,6 +54,13 @@ export interface RBACPermissions {
   canUpdateInquiryStatus: boolean;
   canViewLeadFinancials: boolean;
 
+  // Dedicated Lead Management & Target Tracking Permissions
+  canViewLeads: boolean;
+  canManageLeads: boolean;
+  canAssignLeads: boolean;
+  canConvertLeads: boolean;
+  canManageTargets: boolean;
+
   // Analytics Permissions
   canViewAnalytics: boolean;
   canViewRevenueMetrics: boolean;
@@ -153,6 +160,7 @@ export interface StudioProject {
   status: ProjectStatus;
   priority: Priority;
   trackingCode?: string;
+  customerId?: string; // e.g. CUST-YYYY-XXX
   clientInfo?: {
     clientName: string;
     company: string;
@@ -162,6 +170,7 @@ export interface StudioProject {
     followUpDate: string;
     leadSource: string;
     trackingCode?: string;
+    customerId?: string;
   };
   assignedMemberIds: string[];
   managerId: string;
@@ -246,7 +255,87 @@ export interface ClientInquiry {
   followUpDate: string;
 }
 
-export type StudioLead = ClientInquiry;
+// ─── DEDICATED LEAD MANAGEMENT & CUSTOMER PIPELINE ────────────────────────────
+
+export type LeadStatus =
+  | 'NEW'
+  | 'CONTACTED'
+  | 'FOLLOW_UP'
+  | 'INTERESTED'
+  | 'DEAL_WON'
+  | 'LOST';
+
+export type LeadSource =
+  | 'WEBSITE'
+  | 'MANUAL'
+  | 'WEBHOOK'
+  | 'META_ADS'
+  | 'GOOGLE_ADS'
+  | 'REFERRAL'
+  | 'OUTREACH';
+
+export interface LeadColumn {
+  id: string; // column identifier, e.g. 'company', 'custom_budget'
+  label: string; // display name
+  type: 'text' | 'number' | 'select' | 'date' | 'email' | 'phone' | 'currency';
+  options?: string[]; // for select type
+  isSystem?: boolean; // system columns cannot be removed
+  visible: boolean;
+  order: number;
+  width?: string;
+}
+
+export interface StudioLead {
+  id: string; // lead-XXXXXX
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  value?: number; // expected deal value
+  status: LeadStatus;
+  source: LeadSource;
+  sourceDetails?: string; // campaign tag, utm, form id
+  assignedMemberId?: string;
+  assignedMemberName?: string;
+  customerId?: string; // generated upon conversion: CUST-YYYY-XXX
+  convertedProjectId?: string;
+  convertedAt?: string;
+  notes?: string;
+  customFields?: Record<string, any>; // dynamic editable sheet columns
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudioCustomer {
+  id: string; // CUST-YYYY-XXX
+  name: string;
+  email: string;
+  phone?: string;
+  company: string;
+  firstLeadId?: string;
+  projectIds: string[];
+  totalLifetimeValue: number;
+  status: 'PROSPECT' | 'ACTIVE_CLIENT' | 'PAST_CLIENT';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudioTarget {
+  id: string;
+  title: string;
+  metric: 'REVENUE' | 'DEALS_WON' | 'LEADS_CONTACTED' | 'PROJECTS_DELIVERED' | 'CUSTOM';
+  targetValue: number;
+  currentValue?: number;
+  period: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
+  unit: '$' | '#' | '%' | 'HRS';
+  color?: string;
+}
+
+export function generateCustomerId(existingCount = 0): string {
+  const year = new Date().getFullYear();
+  const seq = String(existingCount + 1).padStart(3, '0');
+  return `CUST-${year}-${seq}`;
+}
 
 // ─── Join / Onboarding Request ───────────────────────────────────────────────
 
@@ -363,6 +452,11 @@ const ALL_ON: RBACPermissions = {
   canCreateInquiry: true,
   canUpdateInquiryStatus: true,
   canViewLeadFinancials: true,
+  canViewLeads: true,
+  canManageLeads: true,
+  canAssignLeads: true,
+  canConvertLeads: true,
+  canManageTargets: true,
   canViewAnalytics: true,
   canViewRevenueMetrics: true,
   canViewTeamMetrics: true,
@@ -834,6 +928,144 @@ export const SEED_JOIN_REQUESTS: JoinRequest[] = [
 // LOCAL STORAGE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
+export const DEFAULT_LEAD_COLUMNS: LeadColumn[] = [
+  { id: 'name', label: 'Lead Contact', type: 'text', isSystem: true, visible: true, order: 1, width: '180px' },
+  { id: 'company', label: 'Company / Org', type: 'text', isSystem: true, visible: true, order: 2, width: '160px' },
+  { id: 'status', label: 'Stage Status', type: 'select', options: ['NEW', 'CONTACTED', 'FOLLOW_UP', 'INTERESTED', 'DEAL_WON', 'LOST'], isSystem: true, visible: true, order: 3, width: '140px' },
+  { id: 'source', label: 'Lead Source', type: 'select', options: ['WEBSITE', 'MANUAL', 'WEBHOOK', 'META_ADS', 'GOOGLE_ADS', 'REFERRAL', 'OUTREACH'], isSystem: true, visible: true, order: 4, width: '130px' },
+  { id: 'value', label: 'Deal Value ($)', type: 'currency', isSystem: true, visible: true, order: 5, width: '130px' },
+  { id: 'assignedMemberName', label: 'Assigned Specialist', type: 'text', isSystem: true, visible: true, order: 6, width: '160px' },
+  { id: 'email', label: 'Contact Email', type: 'email', isSystem: true, visible: true, order: 7, width: '190px' },
+  { id: 'phone', label: 'Phone Number', type: 'phone', isSystem: true, visible: true, order: 8, width: '140px' },
+  { id: 'customerId', label: 'Customer ID', type: 'text', isSystem: true, visible: true, order: 9, width: '140px' },
+  { id: 'notes', label: 'Notes & Telemetry', type: 'text', isSystem: true, visible: true, order: 10, width: '220px' },
+];
+
+export const SEED_LEADS: StudioLead[] = [
+  {
+    id: 'lead-101',
+    name: 'Marcus Vance',
+    email: 'm.vance@vanguard-robotics.io',
+    phone: '+1 (555) 234-8901',
+    company: 'Vanguard Robotics',
+    value: 65000,
+    status: 'INTERESTED',
+    source: 'WEBSITE',
+    sourceDetails: 'Hero CTA // 3D Interactive Showcase',
+    assignedMemberId: 'usr-01',
+    assignedMemberName: 'Sachin (Admin)',
+    notes: 'Requires 120 FPS WebGL spatial digital twin for enterprise robotics line.',
+    createdAt: '2026-10-15T09:30:00Z',
+    updatedAt: '2026-10-20T14:15:00Z',
+  },
+  {
+    id: 'lead-102',
+    name: 'Elena Rostova',
+    email: 'elena@solaris-defense.com',
+    phone: '+1 (555) 987-6543',
+    company: 'Solaris Defense Labs',
+    value: 120000,
+    status: 'DEAL_WON',
+    source: 'WEBHOOK',
+    sourceDetails: 'Webhook // Enterprise Inbound Integration',
+    assignedMemberId: 'usr-01b',
+    assignedMemberName: 'Anuj (Admin)',
+    customerId: 'CUST-2026-001',
+    convertedProjectId: 'prj-001',
+    convertedAt: '2026-10-24T11:00:00Z',
+    notes: 'Signed deal for orbital command console UI. Converted to live project.',
+    createdAt: '2026-10-18T16:45:00Z',
+    updatedAt: '2026-10-24T11:00:00Z',
+  },
+  {
+    id: 'lead-103',
+    name: 'Tariq Al-Mansoor',
+    email: 'tariq@hyperion-ventures.ae',
+    phone: '+971 50 123 4567',
+    company: 'Hyperion Ventures',
+    value: 45000,
+    status: 'CONTACTED',
+    source: 'META_ADS',
+    sourceDetails: 'Campaign: AI Systems & Design Q4',
+    assignedMemberId: 'usr-02',
+    assignedMemberName: 'Dev Sharma',
+    notes: 'Pitch deck sent. Technical follow-up scheduled.',
+    createdAt: '2026-10-22T08:10:00Z',
+    updatedAt: '2026-10-25T10:00:00Z',
+  },
+  {
+    id: 'lead-104',
+    name: 'Sarah Chen',
+    email: 'sarah.c@quantumbit.capital',
+    phone: '+1 (555) 345-6789',
+    company: 'QuantumBit Capital',
+    value: 85000,
+    status: 'NEW',
+    source: 'WEBHOOK',
+    sourceDetails: 'Partner API Webhook Relay',
+    assignedMemberId: 'usr-01',
+    assignedMemberName: 'Sachin (Admin)',
+    notes: 'High-frequency algorithmic trading analytics dashboard scoping.',
+    createdAt: '2026-10-28T12:00:00Z',
+    updatedAt: '2026-10-28T12:00:00Z',
+  },
+];
+
+export const SEED_CUSTOMERS: StudioCustomer[] = [
+  {
+    id: 'CUST-2026-001',
+    name: 'Elena Rostova',
+    email: 'elena@solaris-defense.com',
+    phone: '+1 (555) 987-6543',
+    company: 'Solaris Defense Labs',
+    firstLeadId: 'lead-102',
+    projectIds: ['prj-001'],
+    totalLifetimeValue: 120000,
+    status: 'ACTIVE_CLIENT',
+    createdAt: '2026-10-24T11:00:00Z',
+    updatedAt: '2026-10-24T11:00:00Z',
+  },
+];
+
+export const DEFAULT_TARGETS: StudioTarget[] = [
+  {
+    id: 'tgt-revenue',
+    title: 'Monthly Revenue Pipeline',
+    metric: 'REVENUE',
+    targetValue: 250000,
+    period: 'MONTHLY',
+    unit: '$',
+    color: 'from-emerald-500 to-cyan-500',
+  },
+  {
+    id: 'tgt-deals',
+    title: 'Deals Won (Monthly)',
+    metric: 'DEALS_WON',
+    targetValue: 8,
+    period: 'MONTHLY',
+    unit: '#',
+    color: 'from-violet-500 to-pink-500',
+  },
+  {
+    id: 'tgt-leads',
+    title: 'Leads Contacted',
+    metric: 'LEADS_CONTACTED',
+    targetValue: 25,
+    period: 'MONTHLY',
+    unit: '#',
+    color: 'from-cyan-500 to-blue-500',
+  },
+  {
+    id: 'tgt-projects',
+    title: 'Flagship Deliveries',
+    metric: 'PROJECTS_DELIVERED',
+    targetValue: 6,
+    period: 'QUARTERLY',
+    unit: '#',
+    color: 'from-amber-500 to-orange-500',
+  },
+];
+
 export const STORAGE_KEYS = {
   MEMBERS: 'tnova_members',
   PROJECTS: 'tnova_projects',
@@ -845,6 +1077,10 @@ export const STORAGE_KEYS = {
   ACTIVE_USER: 'tnova_active_user',
   CLIENT_SESSION: 'tnova_client_session',
   JOIN_REQUESTS: 'tnova_join_requests',
+  LEADS: 'tnova_leads',
+  LEAD_COLUMNS: 'tnova_lead_columns',
+  CUSTOMERS: 'tnova_customers',
+  TARGETS: 'tnova_targets',
 };
 
 export function getStore<T>(key: string, fallback: T): T {
@@ -897,4 +1133,8 @@ export function initStore(): void {
   if (!localStorage.getItem(STORAGE_KEYS.CMS)) setStore(STORAGE_KEYS.CMS, SEED_CMS);
   if (!localStorage.getItem(STORAGE_KEYS.RBAC)) setStore(STORAGE_KEYS.RBAC, DEFAULT_ROLE_PERMISSIONS);
   if (!localStorage.getItem(STORAGE_KEYS.JOIN_REQUESTS)) setStore(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS);
+  if (!localStorage.getItem(STORAGE_KEYS.LEADS)) setStore(STORAGE_KEYS.LEADS, SEED_LEADS);
+  if (!localStorage.getItem(STORAGE_KEYS.LEAD_COLUMNS)) setStore(STORAGE_KEYS.LEAD_COLUMNS, DEFAULT_LEAD_COLUMNS);
+  if (!localStorage.getItem(STORAGE_KEYS.CUSTOMERS)) setStore(STORAGE_KEYS.CUSTOMERS, SEED_CUSTOMERS);
+  if (!localStorage.getItem(STORAGE_KEYS.TARGETS)) setStore(STORAGE_KEYS.TARGETS, DEFAULT_TARGETS);
 }

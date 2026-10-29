@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import {
   StudioMember, StudioProject, ClientInquiry, StudioAnnouncement,
   CustomSheet, StudioCMSConfig, RolePermissionConfig,
-  STORAGE_KEYS, getStore, initStore,
+  StudioLead, LeadColumn, StudioCustomer, StudioTarget,
+  DEFAULT_LEAD_COLUMNS, SEED_LEADS, SEED_CUSTOMERS, DEFAULT_TARGETS,
+  STORAGE_KEYS, getStore, setStore, initStore,
   SEED_MEMBERS, SEED_PROJECTS, SEED_INQUIRIES,
   SEED_ANNOUNCEMENTS, SEED_SHEETS, SEED_CMS,
   DEFAULT_ROLE_PERMISSIONS,
@@ -16,6 +18,7 @@ import { PortalThemeProvider } from '@/lib/portal-theme';
 import DashboardShell, { DashboardTab } from '@/components/team/DashboardShell';
 import OverviewTab from '@/components/team/tabs/OverviewTab';
 import ProjectsTab from '@/components/team/tabs/ProjectsTab';
+import LeadsTab from '@/components/team/tabs/LeadsTab';
 import InquiriesTab from '@/components/team/tabs/InquiriesTab';
 import TeamTab from '@/components/team/tabs/TeamTab';
 import AnalyticsTab from '@/components/team/tabs/AnalyticsTab';
@@ -31,6 +34,10 @@ export default function TeamDashboard() {
 
   const [members, setMembers] = useState<StudioMember[]>([]);
   const [projects, setProjects] = useState<StudioProject[]>([]);
+  const [leads, setLeads] = useState<StudioLead[]>([]);
+  const [leadColumns, setLeadColumns] = useState<LeadColumn[]>(DEFAULT_LEAD_COLUMNS);
+  const [customers, setCustomers] = useState<StudioCustomer[]>([]);
+  const [targets, setTargets] = useState<StudioTarget[]>(DEFAULT_TARGETS);
   const [inquiries, setInquiries] = useState<ClientInquiry[]>([]);
   const [announcements, setAnnouncements] = useState<StudioAnnouncement[]>([]);
   const [sheets, setSheets] = useState<CustomSheet[]>([]);
@@ -52,6 +59,10 @@ export default function TeamDashboard() {
     setCurrentUser(activeUser);
     setMembers(getStore(STORAGE_KEYS.MEMBERS, SEED_MEMBERS));
     setProjects(getStore(STORAGE_KEYS.PROJECTS, SEED_PROJECTS));
+    setLeads(getStore(STORAGE_KEYS.LEADS, SEED_LEADS));
+    setLeadColumns(getStore(STORAGE_KEYS.LEAD_COLUMNS, DEFAULT_LEAD_COLUMNS));
+    setCustomers(getStore(STORAGE_KEYS.CUSTOMERS, SEED_CUSTOMERS));
+    setTargets(getStore(STORAGE_KEYS.TARGETS, DEFAULT_TARGETS));
     setInquiries(getStore(STORAGE_KEYS.INQUIRIES, SEED_INQUIRIES));
     setAnnouncements(getStore(STORAGE_KEYS.ANNOUNCEMENTS, SEED_ANNOUNCEMENTS));
     setSheets(getStore(STORAGE_KEYS.SHEETS, SEED_SHEETS));
@@ -90,6 +101,9 @@ export default function TeamDashboard() {
             inquiries={inquiries}
             members={members}
             announcements={announcements}
+            leads={leads}
+            targets={targets}
+            onTargetsChange={setTargets}
             onTabChange={(tab) => setActiveTab(tab as DashboardTab)}
           />
         );
@@ -101,6 +115,22 @@ export default function TeamDashboard() {
             projects={projects}
             members={members}
             onProjectsChange={setProjects}
+          />
+        );
+      case 'LEADS':
+        return (
+          <LeadsTab
+            currentUser={currentUser!}
+            perms={perms}
+            members={members}
+            projects={projects}
+            leads={leads}
+            columns={leadColumns}
+            customers={customers}
+            onLeadsChange={setLeads}
+            onColumnsChange={setLeadColumns}
+            onProjectsChange={setProjects}
+            onCustomersChange={setCustomers}
           />
         );
       case 'INQUIRIES':

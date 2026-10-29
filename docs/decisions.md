@@ -24,3 +24,4 @@
 ## Decision 5: Team Portal Multi-Theming
 - **Decision:** Introduce a portal theme context `lib/portal-theme.tsx` supporting the 3 mandatory themes (Dark Tech, Minimal Clean, Bold Gradient). Themes apply via `data-portal-theme` on the dashboard container, utilizing CSS tokens without altering portal business logic.
 - **Rationale:** Preserves 100% of internal operations while delivering visual coherence.
+

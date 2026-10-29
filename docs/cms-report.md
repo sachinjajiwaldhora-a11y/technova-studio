@@ -170,3 +170,4 @@ All autonomous architectural decisions were logged in `/docs/decisions.md`:
 3. **Bridge Overrides Precedence**: When rendering showcase items, internal completed projects pull code, title, and tech stack from `studio_projects`, but public marketing copy (tagline, problem, solution, result, allowIframe) takes precedence from `featured_projects.publicOverrides`.
 4. **Single Source of Truth**: Contact points across Navbar, Floating Actions, Footer, and Contact sections all link directly to `cmsContent.contact`.
 5. **Team Portal Layout Scoping**: Embedded `PortalThemeProvider` directly in `app/team/page.tsx` avoiding Next.js route manifest churn.
+

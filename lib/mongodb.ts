@@ -132,6 +132,12 @@ export const MONGO_COLLECTIONS = {
   CMS_MEDIA: 'cms_media',
   CMS_AUDIT_LOG: 'cms_audit_log',
   FEATURED_PROJECTS: 'featured_projects',
+
+  // LEAD PIPELINE, CUSTOMER ID & TARGET TRACKING
+  LEADS: 'studio_leads',
+  LEAD_COLUMNS: 'studio_lead_columns',
+  CUSTOMERS: 'studio_customers',
+  TARGETS: 'studio_targets',
 } as const;
 
 export type MongoCollectionKey = keyof typeof MONGO_COLLECTIONS;

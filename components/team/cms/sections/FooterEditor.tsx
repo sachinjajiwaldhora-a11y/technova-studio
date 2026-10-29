@@ -136,3 +136,4 @@ export default function FooterEditor({ data, onChange }: FooterEditorProps) {
     </div>
   );
 }
+

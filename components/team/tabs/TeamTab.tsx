@@ -238,9 +238,14 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
 
   const [pwdInputs, setPwdInputs] = useState<Record<string, string>>({});
 
-  const visibleMembers = perms.canViewAllMembers
+  const rawFiltered = perms.canViewAllMembers
     ? members
     : members.filter((m) => m.id === currentUser.id);
+
+  // Guarantee strictly unique keys by deduplicating member IDs
+  const visibleMembers = Array.from(
+    new Map(rawFiltered.map((m) => [m.id, m])).values()
+  );
 
   const pendingApplicants = joinRequests.filter((r) => r.status === 'PENDING');
 

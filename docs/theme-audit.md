@@ -70,3 +70,4 @@ All 9 protected features verified safe from visual-only theme updates:
 7. Live Website Showcase iframe
 8. Command Palette system (Cmd+K)
 9. Track Sprint client tracker modal
+
