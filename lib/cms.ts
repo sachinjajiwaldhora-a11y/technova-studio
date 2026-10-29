@@ -460,10 +460,17 @@ export function getSiteContent<K extends CMSSectionKey>(sectionKey: K): CMSSecti
       {}
     );
     if (publishedStore && publishedStore[sectionKey]) {
-      return {
+      const merged = {
         ...CMS_SEED_DEFAULTS[sectionKey],
         ...publishedStore[sectionKey],
       } as CMSSectionsPayload[K];
+      if (sectionKey === 'theme_default') {
+        const td = merged as unknown as { defaultTheme?: string };
+        if (td.defaultTheme === 'neo-brutalism' || td.defaultTheme === 'brutalist') {
+          td.defaultTheme = 'dark-tech';
+        }
+      }
+      return merged;
     }
   } catch {
     // Safe fallback
@@ -482,10 +489,17 @@ export function getDraftContent<K extends CMSSectionKey>(sectionKey: K): CMSSect
   try {
     const draftStore = getStore<Partial<CMSSectionsPayload>>(CMS_STORAGE_KEYS.DRAFT, {});
     if (draftStore && draftStore[sectionKey]) {
-      return {
+      const merged = {
         ...CMS_SEED_DEFAULTS[sectionKey],
         ...draftStore[sectionKey],
       } as CMSSectionsPayload[K];
+      if (sectionKey === 'theme_default') {
+        const td = merged as unknown as { defaultTheme?: string };
+        if (td.defaultTheme === 'neo-brutalism' || td.defaultTheme === 'brutalist') {
+          td.defaultTheme = 'dark-tech';
+        }
+      }
+      return merged;
     }
   } catch {
     // Safe fallback
@@ -662,3 +676,4 @@ async function syncSectionToApi(
     // Handled gracefully by local store
   }
 }
+

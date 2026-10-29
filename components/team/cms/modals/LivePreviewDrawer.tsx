@@ -14,7 +14,7 @@ const PREVIEW_THEMES: { id: ThemeType; name: string; color: string }[] = [
   { id: 'dark-tech', name: 'Dark Tech', color: '#00ff66' },
   { id: 'minimal-clean', name: 'Minimal Clean', color: '#2563eb' },
   { id: 'bold-gradient', name: 'Bold Gradient', color: '#8b5cf6' },
-  { id: 'neo-brutalism', name: 'Neo-Brutalism', color: '#f43f5e' },
+  { id: 'dark-pro', name: 'Dark Pro', color: '#3b82f6' },
 ];
 
 export default function LivePreviewDrawer({ isOpen, onClose }: LivePreviewDrawerProps) {
@@ -126,3 +126,4 @@ export default function LivePreviewDrawer({ isOpen, onClose }: LivePreviewDrawer
     </div>
   );
 }
+

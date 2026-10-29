@@ -32,10 +32,10 @@ const THEME_OPTIONS: { id: ThemeType; name: string; desc: string; previewClass: 
     previewClass: 'bg-[#0f0c1b] border-purple-500/40 text-purple-300',
   },
   {
-    id: 'neo-brutalism',
-    name: 'NEO-BRUTALISM',
-    desc: 'High-contrast canary yellow accents, bold 3px borders, hard drop shadows, and raw typography.',
-    previewClass: 'bg-[#fffdf0] border-black text-black',
+    id: 'dark-pro',
+    name: 'DARK PROFESSIONAL',
+    desc: 'Neutral charcoal workspace, subtle borders, off-white text, and calm accent.',
+    previewClass: 'bg-[#171717] border-neutral-700 text-neutral-200',
   },
 ];
 
@@ -100,3 +100,4 @@ export default function ThemeDefaultEditor({ data, onChange }: ThemeDefaultEdito
     </div>
   );
 }
+

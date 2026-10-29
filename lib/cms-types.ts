@@ -1,7 +1,7 @@
 // FILE PATH: lib/cms-types.ts
 // TECHNOVA STUDIO // TYPED PUBLIC CMS DATA SCHEMA
 
-export type ThemeType = 'dark-tech' | 'minimal-clean' | 'bold-gradient' | 'neo-brutalism';
+export type ThemeType = 'dark-tech' | 'minimal-clean' | 'bold-gradient' | 'dark-pro';
 
 export interface FeaturedProjectItem {
   id: string;
