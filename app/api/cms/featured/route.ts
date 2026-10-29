@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const publicOnly = searchParams.get('public') === 'true';
 
     if (!isMongoConfigured()) {
-      return NextResponse.json({ success: true, projects: [], fallback: true });
+      return NextResponse.json({ success: true, projects: [], data: [], fallback: true });
     }
 
     const db = await getDb();
@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       projects: assembledList,
+      data: assembledList,
       totalCompleted: completedProjects.length,
     });
   } catch (error: any) {
@@ -143,3 +144,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

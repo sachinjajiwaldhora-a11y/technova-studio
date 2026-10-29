@@ -184,8 +184,8 @@ export default function CMSDashboard({
         },
         body: JSON.stringify({
           sectionKey: activeSection,
-          content: content[activeSection],
-          action: 'save_draft',
+          data: content[activeSection],
+          mode: 'draft',
         }),
       });
 
@@ -221,8 +221,8 @@ export default function CMSDashboard({
         },
         body: JSON.stringify({
           sectionKey: activeSection,
-          content: content[activeSection],
-          action: 'publish',
+          data: content[activeSection],
+          mode: 'publish',
         }),
       });
 
@@ -258,10 +258,10 @@ export default function CMSDashboard({
   // Open Version History
   const handleOpenVersions = async () => {
     try {
-      const res = await fetch(`/api/cms/versions?sectionKey=${activeSection}`);
+      const res = await fetch(`/api/cms/versions?section=${activeSection}`);
       if (res.ok) {
         const json = await res.json();
-        setVersions(json.data || []);
+        setVersions(json.versions || json.data || []);
       }
     } catch (err) {
       console.error('Failed to load version history:', err);
@@ -275,7 +275,7 @@ export default function CMSDashboard({
       const res = await fetch('/api/cms/audit');
       if (res.ok) {
         const json = await res.json();
-        setAuditLogs(json.data || []);
+        setAuditLogs(json.logs || json.data || []);
       }
     } catch (err) {
       console.error('Failed to load audit logs:', err);

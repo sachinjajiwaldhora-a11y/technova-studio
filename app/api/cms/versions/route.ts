@@ -7,10 +7,10 @@ import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const section = searchParams.get('section');
+    const section = searchParams.get('section') || searchParams.get('sectionKey');
 
     if (!isMongoConfigured()) {
-      return NextResponse.json({ success: true, versions: [], fallback: true });
+      return NextResponse.json({ success: true, versions: [], data: [], fallback: true });
     }
 
     const db = await getDb();
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       .limit(10)
       .toArray();
 
-    return NextResponse.json({ success: true, versions });
+    return NextResponse.json({ success: true, versions, data: versions });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -82,3 +82,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

@@ -54,7 +54,7 @@ export default function FeaturedWorkEditor({
       const res = await fetch('/api/cms/featured');
       if (res.ok) {
         const json = await res.json();
-        setCompletedProjects(json.data || []);
+        setCompletedProjects(json.projects || json.data || []);
       }
     } catch (e) {
       console.error('Failed to fetch completed projects:', e);

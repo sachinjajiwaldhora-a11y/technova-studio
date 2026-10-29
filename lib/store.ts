@@ -1,14 +1,8 @@
 // FILE PATH: lib/store.ts
 // TECHNOVA STUDIO // COMPLETE DATA STORE & SCHEMA
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
-
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+// Legacy Supabase client placeholder (studio uses MongoDB & localStorage store)
+export const supabase: any = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES & INTERFACES
@@ -870,19 +864,31 @@ export function setStore<T>(key: string, value: T): void {
 
 export function initStore(): void {
   if (typeof window === 'undefined') return;
-  const currentMembers = getStore<StudioMember[]>(STORAGE_KEYS.MEMBERS, []);
-  const hasSachin = currentMembers.some((m) => m.email.toLowerCase() === 'sachinjajiwaldhora@gmail.com');
-  const hasAnuj = currentMembers.some((m) => m.email.toLowerCase() === 'anujb2296@gmail.com');
 
-  if (!localStorage.getItem(STORAGE_KEYS.MEMBERS) || !hasSachin || !hasAnuj) {
-    const merged = [...SEED_MEMBERS];
-    for (const m of currentMembers) {
-      if (!merged.some((x) => x.email.toLowerCase() === m.email.toLowerCase())) {
-        merged.push(m);
-      }
-    }
-    setStore(STORAGE_KEYS.MEMBERS, merged);
+  // Deduplicate and ensure clean members roster
+  const currentMembers = getStore<StudioMember[]>(STORAGE_KEYS.MEMBERS, []);
+  const seenIds = new Set<string>();
+  const seenEmails = new Set<string>();
+  const cleanMembers: StudioMember[] = [];
+
+  // Seed members take priority
+  for (const m of SEED_MEMBERS) {
+    seenIds.add(m.id);
+    seenEmails.add(m.email.toLowerCase());
+    cleanMembers.push(m);
   }
+
+  // Then add any additional unique members from localStorage
+  for (const m of currentMembers) {
+    const emailKey = m.email.toLowerCase();
+    if (!seenIds.has(m.id) && !seenEmails.has(emailKey)) {
+      seenIds.add(m.id);
+      seenEmails.add(emailKey);
+      cleanMembers.push(m);
+    }
+  }
+
+  setStore(STORAGE_KEYS.MEMBERS, cleanMembers);
 
   if (!localStorage.getItem(STORAGE_KEYS.PROJECTS)) setStore(STORAGE_KEYS.PROJECTS, SEED_PROJECTS);
   if (!localStorage.getItem(STORAGE_KEYS.INQUIRIES)) setStore(STORAGE_KEYS.INQUIRIES, SEED_INQUIRIES);

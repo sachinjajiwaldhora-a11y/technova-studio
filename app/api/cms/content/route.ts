@@ -98,7 +98,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sectionKey, data, mode } = body; // mode: 'draft' | 'publish'
+    const sectionKey = body.sectionKey;
+    const data = body.data ?? body.content;
+    const mode = body.mode ?? (body.action === 'publish' ? 'publish' : 'draft');
 
     if (!sectionKey || !data) {
       return NextResponse.json({ success: false, error: 'Missing sectionKey or data' }, { status: 400 });
@@ -197,3 +199,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+

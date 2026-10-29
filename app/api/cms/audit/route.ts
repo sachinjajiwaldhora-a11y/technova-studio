@@ -7,7 +7,7 @@ import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 export async function GET() {
   try {
     if (!isMongoConfigured()) {
-      return NextResponse.json({ success: true, logs: [], fallback: true });
+      return NextResponse.json({ success: true, logs: [], data: [], fallback: true });
     }
 
     const db = await getDb();
@@ -18,8 +18,9 @@ export async function GET() {
       .limit(50)
       .toArray();
 
-    return NextResponse.json({ success: true, logs });
+    return NextResponse.json({ success: true, logs, data: logs });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
