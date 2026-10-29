@@ -140,25 +140,35 @@ export default function StatusTrackerModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-[8600] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl border border-red-500/50 bg-[#060606] p-6 sm:p-8 shadow-[0_0_80px_rgba(220,38,38,0.25)] hud-clip my-8 max-h-[92vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-[8600] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-2xl theme-card bg-[var(--surface-elevated)] p-6 sm:p-8 shadow-2xl my-8 max-h-[92vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Client Sprint Status Radar"
+      >
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-zinc-500 hover:text-white transition-colors"
+          aria-label="Close modal"
+          className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors p-1"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Telemetry Header */}
-        <div className="flex items-center space-x-2 text-red-500 font-mono text-[10px] tracking-[0.25em] uppercase">
+        <div className="flex items-center space-x-2 text-[var(--accent)] font-mono text-[10px] tracking-[0.25em] uppercase font-bold">
           <Activity className="w-3.5 h-3.5 animate-pulse" />
           <span>CLIENT SPRINT RADAR // LIVE TELEMETRY</span>
         </div>
 
-        <h3 className="mt-2 text-2xl font-extrabold tracking-tight text-white uppercase">
+        <h3 className="mt-2 text-2xl font-extrabold tracking-tight text-[var(--text)] uppercase">
           TRACK INQUIRY & SPRINT PROGRESS
         </h3>
-        <p className="mt-1 text-xs text-zinc-400 font-light">
+        <p className="mt-1 text-xs text-[var(--text-muted)] font-light">
           Enter your Session Tracking Code or Email to inspect real-time intake status, engineering milestones, and live preview deployments.
         </p>
 
@@ -170,33 +180,33 @@ export default function StatusTrackerModal({
           }}
           className="mt-5 space-y-2"
         >
-          <div className="flex items-center border border-white/20 bg-black/80 px-3 py-1.5 focus-within:border-red-500 transition-colors">
-            <Search className="w-4 h-4 text-red-500 shrink-0 mr-2" />
+          <div className="flex items-center border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 rounded-[var(--radius)] focus-within:border-[var(--accent)] transition-colors">
+            <Search className="w-4 h-4 text-[var(--accent)] shrink-0 mr-2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="e.g. NV-INQ-1042 or your email address"
-              className="w-full bg-transparent font-mono text-xs text-white placeholder-zinc-500 focus:outline-none py-2"
+              className="w-full bg-transparent font-mono text-xs text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none py-2"
             />
             <button
               type="submit"
-              className="shrink-0 font-mono text-[10px] bg-red-600 hover:bg-red-500 text-white px-4 py-2 uppercase tracking-wider transition-colors"
+              className="shrink-0 font-mono text-[10px] theme-btn-primary px-4 py-2 uppercase tracking-wider"
             >
               LOCATE
             </button>
           </div>
 
           {/* Quick shortcuts / hints */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-[9px] text-zinc-500">
-            <span>QUICK DEMO:</span>
+          <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-[9px] text-[var(--text-muted)]">
+            <span>DEMO SHORTCUTS:</span>
             <button
               type="button"
               onClick={() => {
                 setSearchQuery('NV-INQ-1042');
                 performSearch('NV-INQ-1042');
               }}
-              className="border border-red-500/30 bg-red-950/20 px-2 py-0.5 text-red-400 hover:bg-red-600/20 transition-colors"
+              className="border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 rounded text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
             >
               NV-INQ-1042 (Live Project)
             </button>
@@ -207,7 +217,7 @@ export default function StatusTrackerModal({
                   setSearchQuery(cachedSession.sessionCode!);
                   performSearch(cachedSession.sessionCode!);
                 }}
-                className="border border-cyan-500/30 bg-cyan-950/20 px-2 py-0.5 text-cyan-400 hover:bg-cyan-600/20 transition-colors"
+                className="border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 rounded text-[var(--accent-2)] hover:border-[var(--accent-2)] transition-colors"
               >
                 LAST SESSION ({cachedSession.sessionCode})
               </button>
@@ -219,37 +229,37 @@ export default function StatusTrackerModal({
         {searched && (
           <div className="mt-6 space-y-6">
             {!matchedInquiry && !matchedProject ? (
-              <div className="border border-white/10 bg-white/[0.02] p-6 text-center space-y-2">
+              <div className="border border-[var(--border)] bg-[var(--surface)] p-6 text-center space-y-2 rounded-[var(--radius)]">
                 <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
-                <p className="font-mono text-xs text-white uppercase tracking-wider">
+                <p className="font-mono text-xs text-[var(--text)] uppercase tracking-wider font-bold">
                   NO TRANSMISSION RECORD FOUND
                 </p>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
                   No active inquiry or project matched &quot;{searchQuery}&quot;. Please verify your tracking code or contact studio operations directly.
                 </p>
               </div>
             ) : (
               <>
                 {/* Dossier Card */}
-                <div className="border border-white/15 bg-white/[0.02] p-4 hud-clip">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+                <div className="border border-[var(--border)] bg-[var(--surface)] p-4 rounded-[var(--radius)]">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
                     <div>
-                      <span className="font-mono text-[9px] text-red-500 uppercase tracking-widest">
+                      <span className="font-mono text-[9px] text-[var(--accent)] uppercase tracking-widest font-bold">
                         CLIENT DOSSIER
                       </span>
-                      <h4 className="text-lg font-bold text-white">
+                      <h4 className="text-lg font-bold text-[var(--text)]">
                         {matchedInquiry?.company || matchedProject?.clientInfo?.company || 'Confidential Client'}
                       </h4>
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-[var(--text-muted)]">
                         Lead: {matchedInquiry?.clientName || matchedProject?.clientInfo?.clientName} //{' '}
                         {matchedInquiry?.email || matchedProject?.clientInfo?.contact}
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">
-                        CODE
+                      <span className="font-mono text-[9px] text-[var(--text-muted)] uppercase tracking-widest block">
+                        SESSION CODE
                       </span>
-                      <span className="font-mono text-sm font-bold text-red-400">
+                      <span className="font-mono text-sm font-bold text-[var(--accent)]">
                         {matchedInquiry?.trackingCode || matchedProject?.trackingCode || searchQuery.toUpperCase()}
                       </span>
                     </div>
@@ -257,28 +267,28 @@ export default function StatusTrackerModal({
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 font-mono text-[9px]">
                     <div>
-                      <span className="text-zinc-500 block">SCOPE</span>
-                      <span className="text-white font-bold truncate block">
+                      <span className="text-[var(--text-muted)] block">SCOPE</span>
+                      <span className="text-[var(--text)] font-bold truncate block">
                         {matchedInquiry?.scope || matchedProject?.type || 'Custom Engineering'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-zinc-500 block">BUDGET TIER</span>
-                      <span className="text-white font-bold block">
+                      <span className="text-[var(--text-muted)] block">BUDGET TIER</span>
+                      <span className="text-[var(--text)] font-bold block">
                         {matchedInquiry?.budget || matchedProject?.clientInfo?.budget || 'Tier 1'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-zinc-500 block">SUBMITTED</span>
-                      <span className="text-white block">
+                      <span className="text-[var(--text-muted)] block">SUBMITTED</span>
+                      <span className="text-[var(--text)] block">
                         {matchedInquiry?.submittedAt
                           ? new Date(matchedInquiry.submittedAt).toLocaleDateString()
                           : 'Active'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-zinc-500 block">EST. DELIVERY</span>
-                      <span className="text-cyan-400 font-bold block">
+                      <span className="text-[var(--text-muted)] block">EST. DELIVERY</span>
+                      <span className="text-[var(--accent-2)] font-bold block">
                         {matchedProject?.dueDate || matchedInquiry?.preferredCallDate || '30 Days'}
                       </span>
                     </div>
@@ -286,9 +296,9 @@ export default function StatusTrackerModal({
                 </div>
 
                 {/* 5-Step Lifecycle Stepper */}
-                <div className="border border-white/10 bg-black/60 p-4">
+                <div className="border border-[var(--border)] bg-[var(--surface)] p-4 rounded-[var(--radius)]">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="font-mono text-[9px] text-zinc-400 uppercase tracking-widest">
+                    <span className="font-mono text-[9px] text-[var(--text-muted)] uppercase tracking-widest">
                       PIPELINE LIFECYCLE TRACKER
                     </span>
                     <span className="font-mono text-[10px] text-emerald-400 font-bold">
@@ -305,32 +315,32 @@ export default function StatusTrackerModal({
                       return (
                         <div
                           key={st.num}
-                          className={`border p-2.5 transition-all ${
+                          className={`border p-2.5 rounded-[var(--radius)] transition-all ${
                             isCurrent
-                              ? 'border-red-500 bg-red-950/20 shadow-[0_0_15px_rgba(220,38,38,0.2)]'
+                              ? 'border-[var(--accent)] bg-[var(--surface-elevated)] shadow-sm'
                               : isComplete
-                              ? 'border-emerald-500/40 bg-emerald-950/10'
-                              : 'border-white/5 bg-white/[0.01] opacity-50'
+                              ? 'border-emerald-500/40 bg-emerald-500/10'
+                              : 'border-[var(--border)]/40 opacity-40'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-mono text-[9px] text-zinc-500 font-bold">
+                            <span className="font-mono text-[9px] text-[var(--text-muted)] font-bold">
                               {st.num}
                             </span>
                             {isComplete ? (
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                             ) : isCurrent ? (
-                              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                              <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-ping" />
                             ) : null}
                           </div>
                           <p
                             className={`font-mono text-[9px] font-bold uppercase leading-tight ${
-                              isCurrent ? 'text-white' : isComplete ? 'text-emerald-300' : 'text-zinc-500'
+                              isCurrent ? 'text-[var(--text)]' : isComplete ? 'text-emerald-400' : 'text-[var(--text-muted)]'
                             }`}
                           >
                             {st.title}
                           </p>
-                          <p className="text-[8px] text-zinc-400 font-light mt-1 line-clamp-2">
+                          <p className="text-[8px] text-[var(--text-muted)] font-light mt-1 line-clamp-2">
                             {st.desc}
                           </p>
                         </div>
@@ -339,48 +349,36 @@ export default function StatusTrackerModal({
                   </div>
                 </div>
 
-                {/* Live Active Project Sprint Status (If Converted to Active Project) */}
+                {/* Live Active Project Sprint Status */}
                 {matchedProject ? (
-                  <div className="border border-cyan-500/40 bg-cyan-950/10 p-5 space-y-4">
+                  <div className="border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4 rounded-[var(--radius)]">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center space-x-2">
-                        <Terminal className="w-4 h-4 text-cyan-400" />
-                        <h5 className="font-mono text-sm font-bold text-white uppercase">
+                        <Terminal className="w-4 h-4 text-[var(--accent)]" />
+                        <h5 className="font-mono text-sm font-bold text-[var(--text)] uppercase">
                           ACTIVE SPRINT ENGINE: {matchedProject.title}
                         </h5>
                       </div>
-                      <span className="font-mono text-[9px] border border-cyan-400 bg-cyan-500/20 px-2 py-0.5 text-cyan-300 uppercase">
+                      <span className="theme-badge">
                         {matchedProject.status}
                       </span>
                     </div>
 
-                    <p className="text-xs text-zinc-300 font-light leading-relaxed">
+                    <p className="text-xs text-[var(--text-muted)] font-light leading-relaxed">
                       {matchedProject.description}
                     </p>
 
                     {/* Progress Bar */}
                     <div>
                       <div className="flex items-center justify-between font-mono text-[10px] mb-1.5">
-                        <span className="text-zinc-400">OVERALL SPRINT COMPLETION</span>
-                        <span
-                          className={`font-bold ${
-                            projectPct === 100 ? 'text-emerald-400' : 'text-cyan-400'
-                          }`}
-                        >
+                        <span className="text-[var(--text-muted)]">OVERALL SPRINT COMPLETION</span>
+                        <span className="font-bold text-[var(--accent)]">
                           {projectPct}%
                         </span>
                       </div>
-                      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
+                      <div className="h-2 bg-[var(--surface-elevated)] rounded-full overflow-hidden border border-[var(--border)]">
                         <div
-                          className={`h-full transition-all duration-700 ease-out ${
-                            projectPct === 100
-                              ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.8)]'
-                              : projectPct >= 80
-                              ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.6)]'
-                              : projectPct >= 50
-                              ? 'bg-amber-400'
-                              : 'bg-red-500'
-                          }`}
+                          className="h-full bg-[var(--accent)] transition-all duration-700 ease-out"
                           style={{ width: `${projectPct}%` }}
                         />
                       </div>
@@ -388,24 +386,24 @@ export default function StatusTrackerModal({
 
                     {/* Milestones */}
                     {matchedProject.milestones && matchedProject.milestones.length > 0 && (
-                      <div className="border-t border-white/10 pt-3">
-                        <span className="font-mono text-[9px] text-zinc-400 uppercase tracking-widest block mb-2">
+                      <div className="border-t border-[var(--border)] pt-3">
+                        <span className="font-mono text-[9px] text-[var(--text-muted)] uppercase tracking-widest block mb-2">
                           VERIFIED MILESTONES
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {matchedProject.milestones.map((ms) => (
                             <div
                               key={ms.id}
-                              className={`flex items-center space-x-2 text-xs p-2 border ${
+                              className={`flex items-center space-x-2 text-xs p-2 rounded-[var(--radius)] border ${
                                 ms.completed
-                                  ? 'border-emerald-500/30 bg-emerald-950/20 text-zinc-200'
-                                  : 'border-white/5 bg-black/40 text-zinc-500'
+                                  ? 'border-emerald-500/30 bg-emerald-500/10 text-[var(--text)]'
+                                  : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-muted)]'
                               }`}
                             >
                               {ms.completed ? (
                                 <CheckSquare className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                               ) : (
-                                <Square className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                                <Square className="w-3.5 h-3.5 text-[var(--text-dim)] shrink-0" />
                               )}
                               <span className={ms.completed ? '' : 'line-through opacity-70'}>
                                 {ms.title}
@@ -423,7 +421,7 @@ export default function StatusTrackerModal({
                           href={matchedProject.liveUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-2 border border-cyan-400 bg-cyan-600/30 px-5 py-2.5 font-mono text-xs text-white uppercase hover:bg-cyan-600 transition-colors shadow-[0_0_20px_rgba(34,211,238,0.3)]"
+                          className="theme-btn-primary px-5 py-2.5 text-xs font-bold uppercase inline-flex"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>ACCESS LIVE PREVIEW ENGINE</span>
@@ -433,12 +431,12 @@ export default function StatusTrackerModal({
                   </div>
                 ) : (
                   /* Inquiry awaiting project conversion */
-                  <div className="border border-amber-500/30 bg-amber-950/10 p-4 space-y-2">
-                    <div className="flex items-center space-x-2 text-amber-400 font-mono text-xs font-bold uppercase">
+                  <div className="border border-amber-500/30 bg-amber-500/10 p-4 space-y-2 rounded-[var(--radius)]">
+                    <div className="flex items-center space-x-2 text-amber-500 font-mono text-xs font-bold uppercase">
                       <Clock className="w-4 h-4" />
                       <span>INTAKE REVIEW & SCOPING IN PROGRESS</span>
                     </div>
-                    <p className="text-xs text-zinc-300 font-light leading-relaxed">
+                    <p className="text-xs text-[var(--text)] font-light leading-relaxed">
                       Your inquiry is being evaluated by our systems architects. A technical scoping call or customized engineering roadmap is being sequenced. You will receive an encrypted communication shortly.
                     </p>
                   </div>
@@ -448,9 +446,9 @@ export default function StatusTrackerModal({
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2 font-mono text-xs">
                   <a
                     href={`mailto:ops@technovastudio.dev?subject=Inquiry%20Status%20Update%20//%20${matchedInquiry?.trackingCode || searchQuery}`}
-                    className="flex items-center space-x-2 border border-white/20 px-4 py-2 text-zinc-300 hover:text-white hover:border-red-500 transition-colors"
+                    className="theme-btn-secondary px-4 py-2 text-xs font-medium inline-flex items-center space-x-2"
                   >
-                    <Mail className="w-3.5 h-3.5 text-red-500" />
+                    <Mail className="w-3.5 h-3.5 text-[var(--accent)]" />
                     <span>CONTACT SPRINT LEAD</span>
                   </a>
                   <button
@@ -460,7 +458,7 @@ export default function StatusTrackerModal({
                       setMatchedInquiry(null);
                       setMatchedProject(null);
                     }}
-                    className="text-zinc-500 hover:text-zinc-300 underline text-[10px]"
+                    className="text-[var(--text-muted)] hover:text-[var(--text)] underline text-[10px]"
                   >
                     SEARCH ANOTHER CODE
                   </button>

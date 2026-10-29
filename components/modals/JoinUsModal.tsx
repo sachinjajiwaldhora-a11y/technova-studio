@@ -7,6 +7,7 @@ import {
   Department, JoinRequest,
   STORAGE_KEYS, getStore, setStore, SEED_JOIN_REQUESTS,
 } from '@/lib/store';
+import { saveToMongo } from '@/lib/mongodb-client';
 
 interface JoinUsModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newRequest: JoinRequest = {
@@ -52,37 +53,53 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
     const existing = getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS);
     setStore(STORAGE_KEYS.JOIN_REQUESTS, [newRequest, ...existing]);
 
+    try {
+      await saveToMongo('join_requests', newRequest);
+    } catch {
+      // safe fallback
+    }
+
     setSubmitted(true);
   };
 
   return (
-    <div className="fixed inset-0 z-[8500] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="relative w-full max-w-lg border border-red-500/50 bg-[#060606] p-6 sm:p-8 shadow-[0_0_80px_rgba(220,38,38,0.25)] hud-clip my-8 max-h-[92vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-[8500] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg theme-card bg-[var(--surface-elevated)] p-6 sm:p-8 shadow-2xl my-8 max-h-[92vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Talent Onboarding Application Terminal"
+      >
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-zinc-500 hover:text-white transition-colors"
+          aria-label="Close dialog"
+          className="absolute top-5 right-5 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors p-1"
         >
           <X className="w-5 h-5" />
         </button>
 
         {!submitted ? (
           <>
-            <div className="flex items-center space-x-2 text-red-500 font-mono text-[10px] tracking-[0.25em] uppercase">
+            <div className="flex items-center space-x-2 text-[var(--accent)] font-mono text-[10px] tracking-[0.25em] uppercase font-bold">
               <UserPlus className="w-3.5 h-3.5" />
-              <span>COLLECTIVE INTAKE // TALENT ONBOARDING APPLICATION</span>
+              <span>COLLECTIVE INTAKE // TALENT ONBOARDING</span>
             </div>
 
-            <h3 className="mt-2 text-2xl font-extrabold tracking-tight text-white uppercase">
+            <h3 className="mt-2 text-2xl font-extrabold tracking-tight text-[var(--text)] uppercase">
               JOIN TECHNOVA COLLECTIVE
             </h3>
-            <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
-              We recruit elite shader engineers, systems architects, and spatial designers. Submitting this application dispatches your dossier directly to our internal team onboarding console.
+            <p className="mt-1 text-xs text-[var(--text-muted)] leading-relaxed font-light">
+              We recruit elite shader engineers, systems architects, and spatial designers. Submitting this application dispatches your dossier directly to our internal onboarding console.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-mono text-[9px] tracking-widest text-zinc-400 uppercase mb-1">
+                  <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
                     FULL NAME *
                   </label>
                   <input
@@ -90,11 +107,11 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Ananya Deshmukh"
-                    className="w-full border border-white/15 bg-black px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                    className="theme-input font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block font-mono text-[9px] tracking-widest text-zinc-400 uppercase mb-1">
+                  <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
                     WORK EMAIL *
                   </label>
                   <input
@@ -103,14 +120,14 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ananya@graphicslab.io"
-                    className="w-full border border-white/15 bg-black px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                    className="theme-input font-mono text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-mono text-[9px] tracking-widest text-zinc-400 uppercase mb-1">
+                  <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
                     PORTFOLIO / DEMO REEL URL *
                   </label>
                   <input
@@ -118,31 +135,31 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                     value={portfolioUrl}
                     onChange={(e) => setPortfolioUrl(e.target.value)}
                     placeholder="https://ananya.art"
-                    className="w-full border border-white/15 bg-black px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                    className="theme-input font-mono text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block font-mono text-[9px] tracking-widest text-zinc-400 uppercase mb-1">
+                  <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
                     GITHUB / REPO PROFILE
                   </label>
                   <input
                     value={githubUrl}
                     onChange={(e) => setGithubUrl(e.target.value)}
                     placeholder="https://github.com/username"
-                    className="w-full border border-white/15 bg-black px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                    className="theme-input font-mono text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-mono text-[9px] tracking-widest text-zinc-400 uppercase mb-1">
+                  <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
                     PRIMARY DISCIPLINE
                   </label>
                   <select
                     value={department}
                     onChange={(e) => setDepartment(e.target.value as Department)}
-                    className="w-full border border-white/15 bg-black px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                    className="theme-input font-mono text-xs"
                   >
                     {DEPARTMENTS.map((dept) => (
                       <option key={dept} value={dept}>
@@ -152,7 +169,7 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-mono text-[9px] tracking-widest text-zinc-400 uppercase mb-1">
+                  <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
                     KEY SKILLS (COMMA-SEPARATED) *
                   </label>
                   <input
@@ -160,13 +177,13 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                     value={skills}
                     onChange={(e) => setSkills(e.target.value)}
                     placeholder="Three.js, GLSL, WebGPU, Rust"
-                    className="w-full border border-white/15 bg-black px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                    className="theme-input font-mono text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-mono text-[9px] tracking-widest text-zinc-400 uppercase mb-1">
+                <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
                   MISSION STATEMENT / WHY TECHNOVA? *
                 </label>
                 <textarea
@@ -175,13 +192,13 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                   value={statement}
                   onChange={(e) => setStatement(e.target.value)}
                   placeholder="Tell us about the hardest engineering problem you've solved or what you want to build with our collective..."
-                  className="w-full border border-white/15 bg-black px-3.5 py-2.5 font-mono text-xs text-white focus:border-red-500 focus:outline-none resize-none"
+                  className="theme-input font-mono text-xs resize-none"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full mt-2 flex items-center justify-center space-x-2 border border-red-500 bg-red-600/30 py-3.5 font-mono text-xs tracking-[0.25em] text-white uppercase hover:bg-red-600 transition-all hud-clip shadow-[0_0_30px_rgba(220,38,38,0.25)]"
+                className="theme-btn-primary w-full mt-2 py-3.5 text-xs font-bold uppercase tracking-wider"
               >
                 <span>TRANSMIT CANDIDACY APPLICATION</span>
                 <ArrowRight className="w-4 h-4" />
@@ -191,14 +208,14 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
         ) : (
           <div className="py-8 text-center space-y-4">
             <CheckCircle2 className="w-14 h-14 text-emerald-400 mx-auto animate-pulse" />
-            <h4 className="text-2xl font-extrabold tracking-wide text-white uppercase">
+            <h4 className="text-2xl font-extrabold tracking-wide text-[var(--text)] uppercase">
               DOSSIER DISPATCHED
             </h4>
-            <p className="text-xs text-zinc-300 max-w-md mx-auto leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
               Your candidacy application has been registered in the Studio Onboarding Matrix. The engineering leads will review your portfolio and assign clearance.
             </p>
-            <div className="border border-white/10 bg-black/60 p-4 font-mono text-xs text-zinc-400 max-w-sm mx-auto">
-              <div>DEPARTMENT: <span className="text-white font-bold">{department}</span></div>
+            <div className="border border-[var(--border)] bg-[var(--surface)] p-4 rounded-[var(--radius)] font-mono text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+              <div>DEPARTMENT: <span className="text-[var(--accent)] font-bold">{department}</span></div>
               <div className="mt-1 text-[10px]">APPLICANT: {email}</div>
             </div>
             <button
@@ -206,7 +223,7 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                 setSubmitted(false);
                 onClose();
               }}
-              className="border border-white/20 px-8 py-3 font-mono text-xs text-white hover:border-red-500 hover:bg-red-600/20 transition-all uppercase"
+              className="theme-btn-secondary px-8 py-3 text-xs font-semibold uppercase"
             >
               CLOSE TERMINAL
             </button>

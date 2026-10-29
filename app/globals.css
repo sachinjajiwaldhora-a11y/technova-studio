@@ -1,65 +1,319 @@
 /* FILE PATH: app/globals.css */
 @import "tailwindcss";
 
-:root {
-  --bg-obsidian: #030303;
-  --crimson-primary: #dc2626;
-  --crimson-deep: #7f1d1d;
+/* ─────────────────────────────────────────────────────────────────────────────
+   TECHNOVA STUDIO // MULTI-THEME DESIGN TOKEN SYSTEM
+   4 MANDATORY THEMES:
+   1. Dark Tech ("Hacker Terminal")
+   2. Minimal Clean ("Swiss Style")
+   3. Bold Gradient ("Modern SaaS")
+   4. Neo-Brutalism ("Creative Studio")
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="dark-tech"] {
+  --theme-id: "dark-tech";
+  --bg: #030712;
+  --bg-secondary: #080e1e;
+  --surface: #0a1124;
+  --surface-card: #0f172a;
+  --surface-elevated: #162038;
+  --surface-glass: rgba(15, 23, 42, 0.75);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent: #00ff66;
+  --accent-2: #00f0ff;
+  --accent-hover: #10b981;
+  --accent-contrast: #030712;
+  --border: rgba(0, 255, 102, 0.22);
+  --border-strong: rgba(0, 255, 102, 0.55);
+  --border-width: 1px;
+  --radius: 4px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+  --shadow: 0 0 25px rgba(0, 255, 102, 0.12);
+  --shadow-lg: 0 0 45px rgba(0, 255, 102, 0.22);
+  --glow-color: rgba(0, 255, 102, 0.25);
+  --badge-bg: rgba(0, 255, 102, 0.12);
+  --badge-text: #00ff66;
+  --font-heading: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
 }
+
+[data-theme="minimal-clean"] {
+  --theme-id: "minimal-clean";
+  --bg: #fcfcfd;
+  --bg-secondary: #f4f5f7;
+  --surface: #ffffff;
+  --surface-card: #ffffff;
+  --surface-elevated: #f8fafc;
+  --surface-glass: rgba(255, 255, 255, 0.85);
+  --text: #090d16;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+  --accent: #1d4ed8;
+  --accent-2: #ea580c;
+  --accent-hover: #1e40af;
+  --accent-contrast: #ffffff;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-width: 1px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
+  --shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 20px 30px -10px rgba(15, 23, 42, 0.1);
+  --glow-color: rgba(29, 78, 216, 0.12);
+  --badge-bg: #eff6ff;
+  --badge-text: #1d4ed8;
+  --font-heading: "Inter", system-ui, -apple-system, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+}
+
+[data-theme="bold-gradient"] {
+  --theme-id: "bold-gradient";
+  --bg: #090a1a;
+  --bg-secondary: #0f102e;
+  --surface: rgba(22, 23, 56, 0.65);
+  --surface-card: rgba(26, 28, 70, 0.55);
+  --surface-elevated: rgba(38, 41, 98, 0.7);
+  --surface-glass: rgba(26, 28, 70, 0.45);
+  --text: #ffffff;
+  --text-muted: #c7d2fe;
+  --text-dim: #818cf8;
+  --accent: #8b5cf6;
+  --accent-2: #ec4899;
+  --accent-hover: #a855f7;
+  --accent-contrast: #ffffff;
+  --border: rgba(165, 180, 252, 0.2);
+  --border-strong: rgba(216, 180, 254, 0.45);
+  --border-width: 1px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+  --shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.25);
+  --shadow-lg: 0 16px 48px 0 rgba(236, 72, 153, 0.25);
+  --glow-color: rgba(139, 92, 246, 0.35);
+  --badge-bg: rgba(139, 92, 246, 0.18);
+  --badge-text: #c084fc;
+  --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+}
+
+[data-theme="neo-brutalism"] {
+  --theme-id: "neo-brutalism";
+  --bg: #fffdf0;
+  --bg-secondary: #fef08a;
+  --surface: #ffffff;
+  --surface-card: #fef9c3;
+  --surface-elevated: #fed7aa;
+  --surface-glass: #ffffff;
+  --text: #000000;
+  --text-muted: #1c1917;
+  --text-dim: #44403c;
+  --accent: #f43f5e;
+  --accent-2: #06b6d4;
+  --accent-hover: #e11d48;
+  --accent-contrast: #ffffff;
+  --border: #000000;
+  --border-strong: #000000;
+  --border-width: 3px;
+  --radius: 0px;
+  --radius-lg: 0px;
+  --radius-full: 0px;
+  --shadow: 5px 5px 0px #000000;
+  --shadow-lg: 8px 8px 0px #000000;
+  --glow-color: transparent;
+  --badge-bg: #facc15;
+  --badge-text: #000000;
+  --font-heading: "Space Grotesk", Impact, system-ui, sans-serif;
+  --font-body: system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", monospace;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GLOBAL RESETS & STYLING
+   ───────────────────────────────────────────────────────────────────────────── */
 
 * {
   box-sizing: border-box;
-  cursor: none !important; /* Force Custom Tactical Reticle Cursor */
 }
 
-html,
-body {
-  background-color: var(--bg-obsidian);
-  color: #f4f4f5;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+html {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  transition: background-color 0.25s ease, color 0.25s ease;
+  scroll-behavior: smooth;
   overflow-x: hidden;
 }
 
-::selection {
-  background: rgba(220, 38, 38, 0.35);
-  color: #ffffff;
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-/* Custom Subtle Scrollbar */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #030303;
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #3f1313;
+  background: var(--text-dim);
+  border-radius: var(--radius);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #dc2626;
+  background: var(--accent);
 }
 
-/* HUD Chamfered / Angled Corners for Architectural Buttons */
+/* ─────────────────────────────────────────────────────────────────────────────
+   THEME PRIMITIVE UTILITIES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.theme-card {
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.theme-card-hover:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="neo-brutalism"] .theme-card-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0px #000000;
+}
+
+.theme-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.theme-btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+[data-theme="neo-brutalism"] .theme-btn-primary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000000;
+}
+
+.theme-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.theme-btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+[data-theme="neo-brutalism"] .theme-btn-secondary {
+  box-shadow: 3px 3px 0px #000000;
+}
+
+[data-theme="neo-brutalism"] .theme-btn-secondary:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0px #000000;
+}
+
+.theme-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background-color: var(--badge-bg);
+  color: var(--badge-text);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+}
+
+.theme-input {
+  width: 100%;
+  background-color: var(--surface);
+  color: var(--text);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.theme-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Backward compatibility for existing hud-clip */
 .hud-clip {
+  border-radius: var(--radius);
+}
+[data-theme="dark-tech"] .hud-clip {
   clip-path: polygon(
     0 0,
-    calc(100% - 10px) 0,
-    100% 10px,
+    calc(100% - 8px) 0,
+    100% 8px,
     100% 100%,
-    10px 100%,
-    0 calc(100% - 10px)
+    8px 100%,
+    0 calc(100% - 8px)
   );
 }
 
-/* Subtle Architectural Scanline Overlay */
-.scanline-overlay {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0) 50%,
-    rgba(0, 0, 0, 0.25) 50%,
-    rgba(0, 0, 0, 0.25)
-  );
-  background-size: 100% 4px;
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

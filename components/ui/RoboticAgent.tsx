@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Send, Sparkles } from 'lucide-react';
+import { X, Send, Sparkles, Bot, MessageSquare } from 'lucide-react';
 
 const PREDEFINED_QA = [
   {
@@ -19,7 +19,7 @@ const PREDEFINED_QA = [
   },
 ];
 
-export default function RoboticAgent({ ready }: { ready: boolean }) {
+export default function RoboticAgent({ ready = true }: { ready?: boolean }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<{ sender: 'bot' | 'user'; text: string }[]>([
     {
@@ -52,34 +52,48 @@ export default function RoboticAgent({ ready }: { ready: boolean }) {
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 transition-all duration-500 ${
+      className={`fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 select-none transition-all duration-500 ${
         ready ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
       }`}
+      aria-label="Studio AI Agent"
     >
       {/* Expanded Terminal Q&A Interface */}
       {open && (
-        <div className="mb-3 w-80 sm:w-96 border border-red-500/50 bg-[#070707]/95 backdrop-blur-xl shadow-[0_0_50px_rgba(220,38,38,0.25)] hud-clip overflow-hidden">
-          <div className="flex items-center justify-between border-b border-white/10 bg-red-950/20 px-4 py-3">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="NV-UNIT.01 Studio AI Assistant"
+          className="mb-3 w-80 sm:w-96 theme-card overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+          style={{
+            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3">
             <div className="flex items-center space-x-2">
-              <Sparkles className="w-3.5 h-3.5 text-red-500" />
-              <span className="font-mono text-[10px] tracking-[0.2em] text-white uppercase">
+              <Sparkles className="w-4 h-4 text-[var(--accent)] animate-pulse" />
+              <span className="font-mono text-[11px] font-bold tracking-[0.2em] text-[var(--text)] uppercase">
                 NV-UNIT.01 // STUDIO AI
               </span>
             </div>
-            <button onClick={() => setOpen(false)} className="text-zinc-400 hover:text-white">
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close AI Assistant"
+              className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors p-1"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Chat Feed */}
-          <div className="p-4 h-60 overflow-y-auto space-y-3 font-mono text-xs">
+          <div className="p-4 h-64 overflow-y-auto space-y-3 font-mono text-xs bg-[var(--surface)]">
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`p-2.5 ${
+                className={`p-3 rounded-[var(--radius)] ${
                   m.sender === 'bot'
-                    ? 'border-l-2 border-red-500 bg-white/[0.03] text-zinc-300'
-                    : 'bg-red-600/20 border border-red-500/30 text-white ml-6'
+                    ? 'border-l-2 border-[var(--accent)] bg-[var(--surface-elevated)] text-[var(--text)]'
+                    : 'bg-[var(--accent)] text-[var(--accent-contrast)] border border-[var(--border)] ml-6 font-semibold'
                 }`}
               >
                 {m.text}
@@ -88,12 +102,12 @@ export default function RoboticAgent({ ready }: { ready: boolean }) {
           </div>
 
           {/* Quick FAQ Chips */}
-          <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+          <div className="px-3 pb-2 pt-1 bg-[var(--surface)] flex flex-wrap gap-1.5 border-t border-[var(--border)]/50">
             {PREDEFINED_QA.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => handleAsk(item.q, item.a)}
-                className="text-left font-mono text-[9px] border border-white/10 bg-white/[0.02] px-2 py-1 text-zinc-400 hover:border-red-500/50 hover:text-white transition-colors"
+                className="text-left font-mono text-[9px] border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 rounded-[var(--radius)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors"
               >
                 {item.q}
               </button>
@@ -103,33 +117,41 @@ export default function RoboticAgent({ ready }: { ready: boolean }) {
           {/* Input Box */}
           <form
             onSubmit={handleCustomSubmit}
-            className="flex items-center border-t border-white/10 px-3 py-2"
+            className="flex items-center border-t border-[var(--border)] px-3 py-2 bg-[var(--surface-elevated)]"
           >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask NV-UNIT.01..."
-              className="w-full bg-transparent font-mono text-xs text-white placeholder-zinc-600 focus:outline-none"
+              className="w-full bg-transparent font-mono text-xs text-[var(--text)] placeholder-[var(--text-dim)] focus:outline-none"
             />
-            <button type="submit" className="text-red-500 hover:text-red-400 p-1">
+            <button
+              type="submit"
+              aria-label="Send query"
+              className="text-[var(--accent)] hover:opacity-80 p-1.5 transition-opacity"
+            >
               <Send className="w-3.5 h-3.5" />
             </button>
           </form>
         </div>
       )}
 
-      {/* Docked Robotic Head Avatar Button */}
+      {/* Docked AI Head Button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
-        data-hud-interactive="true"
-        className="group relative ml-auto w-14 h-14 border border-red-500/60 bg-[#070707]/90 flex flex-col items-center justify-center shadow-[0_0_25px_rgba(220,38,38,0.3)] hover:border-red-400 transition-all hud-clip"
+        aria-label="Toggle Studio AI Assistant"
+        aria-expanded={open}
+        className="group relative ml-auto w-12 sm:w-14 h-12 sm:h-14 rounded-full border-2 border-[var(--border-strong)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center shadow-lg hover:border-[var(--accent)] hover:scale-105 transition-all"
+        style={{
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        }}
       >
-        <div className="flex items-center space-x-2">
-          <span className="w-3 h-1 bg-red-500 shadow-[0_0_10px_#ef4444] skew-x-[-14deg] group-hover:scale-y-125 transition-transform" />
-          <span className="w-3 h-1 bg-red-500 shadow-[0_0_10px_#ef4444] skew-x-[14deg] group-hover:scale-y-125 transition-transform" />
+        <div className="flex items-center space-x-1.5">
+          <span className="w-2.5 sm:w-3 h-1 rounded-full bg-[var(--accent)] skew-x-[-14deg] group-hover:scale-y-125 transition-transform" />
+          <span className="w-2.5 sm:w-3 h-1 rounded-full bg-[var(--accent)] skew-x-[14deg] group-hover:scale-y-125 transition-transform" />
         </div>
-        <span className="mt-1.5 font-mono text-[7px] tracking-widest text-zinc-400 group-hover:text-red-400">
+        <span className="mt-1 font-mono text-[7px] font-bold tracking-widest text-[var(--text)] group-hover:text-[var(--accent)]">
           AI.HUD
         </span>
       </button>
