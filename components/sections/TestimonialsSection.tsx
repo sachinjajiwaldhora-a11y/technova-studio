@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { Star, ShieldCheck, Quote } from 'lucide-react';
+import { TestimonialsContent } from '@/lib/cms-types';
 
 const TESTIMONIALS = [
   {
@@ -31,25 +32,45 @@ const TESTIMONIALS = [
   },
 ];
 
-export default function TestimonialsSection() {
+interface TestimonialsSectionProps {
+  content?: TestimonialsContent;
+}
+
+export default function TestimonialsSection({ content }: TestimonialsSectionProps) {
+  const badgeText = content?.badge || '// CLIENT VALIDATION & DIRECT ENDORSEMENTS';
+  const headingText = content?.heading || 'PROOF OF EXCELLENCE';
+  const subText =
+    content?.subText ||
+    'Read what technical founders and enterprise engineering directors say after deploying Technova Studio architectures.';
+
+  const displayTestimonials = content?.testimonials?.length
+    ? content.testimonials.filter((t) => t.visible).map((t) => ({
+        quote: t.quote,
+        author: t.author,
+        role: t.role,
+        company: t.company,
+        clearance: t.clearance,
+      }))
+    : TESTIMONIALS;
+
   return (
     <section id="testimonials-matrix" className="relative z-10 py-28 px-4 sm:px-8 lg:px-16 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="max-w-3xl mb-16">
           <div className="font-mono text-[10px] tracking-[0.3em] text-[var(--accent)] uppercase font-bold">
-            // CLIENT VALIDATION & DIRECT ENDORSEMENTS
+            {badgeText}
           </div>
           <h2 className="mt-2 text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-[var(--text)]">
-            PROOF OF EXCELLENCE
+            {headingText}
           </h2>
           <p className="mt-3 text-sm text-[var(--text-muted)] leading-relaxed font-light">
-            Read what technical founders and enterprise engineering directors say after deploying Technova Studio architectures.
+            {subText}
           </p>
         </div>
 
         {/* Testimonials 3-Card Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map((t, idx) => (
+          {displayTestimonials.map((t, idx) => (
             <div
               key={idx}
               className="theme-card p-8 flex flex-col justify-between hover:border-[var(--accent)] transition-all"
@@ -88,3 +109,4 @@ export default function TestimonialsSection() {
     </section>
   );
 }
+

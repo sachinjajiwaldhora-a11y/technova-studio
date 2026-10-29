@@ -12,6 +12,7 @@ import {
   DEFAULT_ROLE_PERMISSIONS,
 } from '@/lib/store';
 import { getPermissions } from '@/lib/rbac';
+import { PortalThemeProvider } from '@/lib/portal-theme';
 import DashboardShell, { DashboardTab } from '@/components/team/DashboardShell';
 import OverviewTab from '@/components/team/tabs/OverviewTab';
 import ProjectsTab from '@/components/team/tabs/ProjectsTab';
@@ -168,15 +169,17 @@ export default function TeamDashboard() {
   }
 
   return (
-    <DashboardShell
-      currentUser={currentUser!}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      onLogout={handleLogout}
-      onGoHome={() => router.push('/')}
-      unreadCount={unreadAnnCount}
-    >
-      {renderTab()}
-    </DashboardShell>
+    <PortalThemeProvider>
+      <DashboardShell
+        currentUser={currentUser!}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onLogout={handleLogout}
+        onGoHome={() => router.push('/')}
+        unreadCount={unreadAnnCount}
+      >
+        {renderTab()}
+      </DashboardShell>
+    </PortalThemeProvider>
   );
 }

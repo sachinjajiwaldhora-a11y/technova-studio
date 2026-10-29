@@ -420,3 +420,88 @@ h1, h2, h3, h4, h5, h6 {
     animation: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TEAM PORTAL THEMES (3 Visual Themes)
+   - Dark Tech: OLED blacks, neon red/cyan accents, HUD terminal styling
+   - Minimal Clean: Crisp paper canvas, slate borders, sapphire focus
+   - Bold Gradient: Deep indigo cosmos, glowing neon purple/cyan aurora glass
+   ───────────────────────────────────────────────────────────────────────────── */
+
+[data-portal-theme="dark-tech"] {
+  --portal-bg: #030303;
+  --portal-sidebar: #050505;
+  --portal-surface: #0a0a0a;
+  --portal-surface-sunken: #060606;
+  --portal-surface-elevated: #111111;
+  --portal-border: rgba(255, 255, 255, 0.08);
+  --portal-text: #ffffff;
+  --portal-text-muted: #a1a1aa;
+  --portal-accent: #ef4444;
+  --portal-accent-contrast: #ffffff;
+  --portal-accent-border: rgba(239, 68, 68, 0.5);
+  --portal-accent-bg: rgba(239, 68, 68, 0.15);
+}
+
+[data-portal-theme="minimal-clean"] {
+  --portal-bg: #f8fafc;
+  --portal-sidebar: #ffffff;
+  --portal-surface: #ffffff;
+  --portal-surface-sunken: #f1f5f9;
+  --portal-surface-elevated: #ffffff;
+  --portal-border: #e2e8f0;
+  --portal-text: #0f172a;
+  --portal-text-muted: #64748b;
+  --portal-accent: #2563eb;
+  --portal-accent-contrast: #ffffff;
+  --portal-accent-border: rgba(37, 99, 235, 0.5);
+  --portal-accent-bg: rgba(37, 99, 235, 0.1);
+}
+
+[data-portal-theme="bold-gradient"] {
+  --portal-bg: #090514;
+  --portal-sidebar: #0f0822;
+  --portal-surface: #140b2e;
+  --portal-surface-sunken: #0b0518;
+  --portal-surface-elevated: #1a0f3c;
+  --portal-border: rgba(168, 85, 247, 0.25);
+  --portal-text: #f8fafc;
+  --portal-text-muted: #c084fc;
+  --portal-accent: #d946ef;
+  --portal-accent-contrast: #ffffff;
+  --portal-accent-border: rgba(217, 70, 239, 0.5);
+  --portal-accent-bg: rgba(217, 70, 239, 0.15);
+}
+
+.portal-theme-wrapper {
+  background-color: var(--portal-bg);
+  color: var(--portal-text);
+}
+
+.portal-sidebar {
+  background-color: var(--portal-sidebar);
+  border-color: var(--portal-border);
+}
+
+.portal-border {
+  border-color: var(--portal-border);
+}
+
+[data-portal-theme="minimal-clean"] .portal-sidebar,
+[data-portal-theme="minimal-clean"] .portal-theme-wrapper {
+  color: #0f172a;
+}
+
+[data-portal-theme="minimal-clean"] nav button {
+  color: #475569;
+}
+
+[data-portal-theme="minimal-clean"] nav button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #0f172a;
+}
+
+[data-portal-theme="bold-gradient"] nav button:hover {
+  background-color: rgba(217, 70, 239, 0.08);
+  color: #f8fafc;
+}

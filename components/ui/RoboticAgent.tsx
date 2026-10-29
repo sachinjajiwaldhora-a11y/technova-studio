@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import { X, Send, Sparkles, Bot, MessageSquare } from 'lucide-react';
+import { AiAgentContent } from '@/lib/cms-types';
 
 const PREDEFINED_QA = [
   {
@@ -19,12 +20,29 @@ const PREDEFINED_QA = [
   },
 ];
 
-export default function RoboticAgent({ ready = true }: { ready?: boolean }) {
+interface RoboticAgentProps {
+  ready?: boolean;
+  agentData?: AiAgentContent;
+}
+
+export default function RoboticAgent({ ready = true, agentData }: RoboticAgentProps) {
+  if (agentData && agentData.enabled === false) {
+    return null;
+  }
+
+  const agentName = agentData?.agentName || 'NV-UNIT.01';
+  const greeting =
+    agentData?.greetingText ||
+    `${agentName} ONLINE. Select a telemetry query below or type your question.`;
+  const questionsList = agentData?.suggestedQuestions?.length
+    ? agentData.suggestedQuestions
+    : PREDEFINED_QA;
+
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<{ sender: 'bot' | 'user'; text: string }[]>([
     {
       sender: 'bot',
-      text: 'NV-UNIT.01 ONLINE. Select a telemetry query below or type your question.',
+      text: greeting,
     },
   ]);
   const [input, setInput] = useState('');
@@ -73,7 +91,7 @@ export default function RoboticAgent({ ready = true }: { ready?: boolean }) {
             <div className="flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-[var(--accent)] animate-pulse" />
               <span className="font-mono text-[11px] font-bold tracking-[0.2em] text-[var(--text)] uppercase">
-                NV-UNIT.01 // STUDIO AI
+                {agentName} // STUDIO AI
               </span>
             </div>
             <button
@@ -103,7 +121,7 @@ export default function RoboticAgent({ ready = true }: { ready?: boolean }) {
 
           {/* Quick FAQ Chips */}
           <div className="px-3 pb-2 pt-1 bg-[var(--surface)] flex flex-wrap gap-1.5 border-t border-[var(--border)]/50">
-            {PREDEFINED_QA.map((item, idx) => (
+            {questionsList.map((item, idx) => (
               <button
                 key={idx}
                 onClick={() => handleAsk(item.q, item.a)}

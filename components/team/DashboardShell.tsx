@@ -4,9 +4,10 @@
 import React from 'react';
 import { StudioMember, UserRole } from '@/lib/store';
 import { getPermissions } from '@/lib/rbac';
+import { usePortalTheme, PortalTheme } from '@/lib/portal-theme';
 import {
   LayoutDashboard, Briefcase, Users, BarChart3, Megaphone,
-  Globe, Database, Settings, LogOut, Home, Shield, ChevronRight,
+  Globe, Database, Settings, LogOut, Home, Shield, ChevronRight, Palette,
 } from 'lucide-react';
 
 export type DashboardTab =
@@ -64,6 +65,7 @@ export default function DashboardShell({
   unreadCount = 0,
 }: DashboardShellProps) {
   const perms = getPermissions(currentUser.role);
+  const { theme, setTheme, cycleTheme } = usePortalTheme();
 
   const visibleTabs = NAV_ITEMS.filter((item) => {
     if (item.requirePerm && !item.requirePerm(perms)) return false;
@@ -85,24 +87,27 @@ export default function DashboardShell({
   };
 
   return (
-    <div className="flex min-h-screen bg-[#030303] text-white">
+    <div
+      className="flex min-h-screen portal-theme-wrapper transition-colors duration-200"
+      data-portal-theme={theme}
+    >
       {/* ── SIDEBAR ──────────────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-60 border-r border-white/8 bg-[#050505] shrink-0 sticky top-0 h-screen overflow-y-auto">
+      <aside className="hidden md:flex flex-col w-60 border-r portal-sidebar shrink-0 sticky top-0 h-screen overflow-y-auto">
         {/* Brand */}
-        <div className="px-5 pt-6 pb-5 border-b border-white/8">
+        <div className="px-5 pt-6 pb-5 border-b portal-border">
           <div className="flex items-center space-x-2.5">
-            <div className="w-7 h-7 border border-red-500/60 bg-red-950/40 flex items-center justify-center hud-clip">
-              <Shield className="w-3.5 h-3.5 text-red-500" />
+            <div className="w-7 h-7 border border-[var(--portal-accent-border,rgba(239,68,68,0.6))] bg-[var(--portal-accent-bg,rgba(239,68,68,0.1))] flex items-center justify-center hud-clip">
+              <Shield className="w-3.5 h-3.5 text-[var(--portal-accent,#ef4444)]" />
             </div>
             <div>
-              <p className="font-mono text-[10px] tracking-[0.28em] text-white font-bold">TECHNOVA</p>
-              <p className="font-mono text-[7px] tracking-[0.18em] text-zinc-500">COMMAND CONSOLE</p>
+              <p className="font-mono text-[10px] tracking-[0.28em] text-[var(--portal-text,#fff)] font-bold">TECHNOVA</p>
+              <p className="font-mono text-[7px] tracking-[0.18em] text-[var(--portal-text-muted,#71717a)]">COMMAND CONSOLE</p>
             </div>
           </div>
         </div>
 
         {/* User Badge */}
-        <div className="px-4 py-4 border-b border-white/8">
+        <div className="px-4 py-4 border-b portal-border">
           <div className="flex items-center space-x-2.5">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
@@ -111,11 +116,40 @@ export default function DashboardShell({
               {currentUser.photoInitials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{currentUser.name}</p>
+              <p className="text-xs font-semibold text-[var(--portal-text,#fff)] truncate">{currentUser.name}</p>
               <span className={`inline-block mt-0.5 font-mono text-[8px] tracking-widest border px-1.5 py-0.5 ${roleColors[currentUser.role]}`}>
                 {roleLabel[currentUser.role]}
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Portal Theme Switcher (3 Themes) */}
+        <div className="px-4 py-3 border-b portal-border space-y-1.5 bg-[var(--portal-surface-sunken,rgba(0,0,0,0.2))]">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[8px] uppercase tracking-wider text-[var(--portal-text-muted,#71717a)] font-bold flex items-center gap-1">
+              <Palette className="w-2.5 h-2.5 text-[var(--portal-accent,#ef4444)]" />
+              PORTAL THEME
+            </span>
+            <span className="font-mono text-[8px] text-[var(--portal-accent,#ef4444)] uppercase font-semibold">
+              {theme === 'dark-tech' ? 'DARK TECH' : theme === 'minimal-clean' ? 'MINIMAL' : 'BOLD GRAD'}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1 p-0.5 rounded border portal-border bg-[var(--portal-surface,rgba(0,0,0,0.3))]">
+            {(['dark-tech', 'minimal-clean', 'bold-gradient'] as PortalTheme[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTheme(t)}
+                className={`font-mono text-[8px] py-1 rounded uppercase tracking-wider transition-all ${
+                  theme === t
+                    ? 'bg-[var(--portal-accent,#ef4444)] text-[var(--portal-accent-contrast,#ffffff)] font-bold shadow-sm'
+                    : 'text-[var(--portal-text-muted,#71717a)] hover:text-[var(--portal-text,#ffffff)]'
+                }`}
+              >
+                {t === 'dark-tech' ? 'TECH' : t === 'minimal-clean' ? 'CLEAN' : 'BOLD'}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -176,6 +210,15 @@ export default function DashboardShell({
           <span className="font-mono text-xs tracking-widest text-white font-bold">TECHNOVA CONSOLE</span>
         </div>
         <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={cycleTheme}
+            title="Cycle Portal Theme"
+            className="p-1.5 text-zinc-400 hover:text-white flex items-center gap-1 font-mono text-[9px] uppercase"
+          >
+            <Palette className="w-3.5 h-3.5 text-red-500" />
+            <span className="hidden sm:inline">{theme}</span>
+          </button>
           <button onClick={onGoHome} className="p-1.5 text-zinc-400 hover:text-white">
             <Home className="w-4 h-4" />
           </button>

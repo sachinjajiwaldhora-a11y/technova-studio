@@ -7,10 +7,12 @@ import {
   Sparkles, Terminal, ArrowUpRight, AlertCircle, RefreshCw,
 } from 'lucide-react';
 import { PortfolioShowcaseItem } from '@/lib/store';
+import { FeaturedWorkContent, FeaturedProjectItem } from '@/lib/cms-types';
 
 interface FeaturedWorkSectionProps {
-  projects: PortfolioShowcaseItem[];
+  projects: (PortfolioShowcaseItem | FeaturedProjectItem)[];
   onOpenBooking: () => void;
+  cmsData?: FeaturedWorkContent;
 }
 
 interface CaseStudyDetails {
@@ -40,12 +42,17 @@ const CASE_STUDY_METAS: Record<string, CaseStudyDetails> = {
 export default function FeaturedWorkSection({
   projects,
   onOpenBooking,
+  cmsData,
 }: FeaturedWorkSectionProps) {
   const [filter, setFilter] = useState<'ALL' | 'FEATURED' | 'WEBGL' | 'AI'>('ALL');
   const [activeIframe, setActiveIframe] = useState<string | null>(null);
   const [iframeFailed, setIframeFailed] = useState<Record<string, boolean>>({});
 
-  const filteredProjects = projects.filter((p) => {
+  const displayList = cmsData?.projects?.length
+    ? cmsData.projects.filter((p) => p.featured).slice(0, cmsData.maxHomeItems || 4)
+    : projects;
+
+  const filteredProjects = displayList.filter((p) => {
     if (filter === 'FEATURED') return p.featured;
     if (filter === 'WEBGL') return p.tags.some((t) => t.toLowerCase().includes('webgl') || t.toLowerCase().includes('glsl'));
     if (filter === 'AI') return p.tags.some((t) => t.toLowerCase().includes('ai'));
@@ -56,6 +63,10 @@ export default function FeaturedWorkSection({
     setIframeFailed((prev) => ({ ...prev, [id]: true }));
   };
 
+  const badgeText = cmsData?.badge || 'SELECTED PRODUCTIONS // VERIFIED BUILDS';
+  const headingText = cmsData?.heading || 'FEATURED WORK';
+  const subText = cmsData?.subText || 'Live websites, embedded spatial engines, and high-frequency systems engineered by Technova Studio.';
+
   return (
     <section id="work-matrix" className="relative z-10 py-28 px-4 sm:px-8 lg:px-16 overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -64,12 +75,13 @@ export default function FeaturedWorkSection({
           <div>
             <div className="flex items-center space-x-2 font-mono text-[10px] tracking-[0.3em] text-[var(--accent)] uppercase font-bold">
               <Activity className="w-3.5 h-3.5" />
-              <span>SELECTED PRODUCTIONS // VERIFIED BUILDS</span>
+              <span>{badgeText}</span>
             </div>
             <h2 className="mt-2 text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-[var(--text)]">
-              FEATURED WORK
+              {headingText}
             </h2>
             <p className="mt-2 text-sm text-[var(--text-muted)] max-w-xl font-light">
+              {subText}
               Live websites, embedded spatial engines, and high-frequency systems engineered by Technova Studio.
             </p>
           </div>
@@ -97,10 +109,11 @@ export default function FeaturedWorkSection({
           {filteredProjects.map((project) => {
             const isIframeOpen = activeIframe === project.id;
             const hasError = iframeFailed[project.id];
-            const meta = CASE_STUDY_METAS[project.id] || {
-              problem: 'High complexity architecture requiring bespoke shader engineering and verified low latency.',
-              solution: 'Engineered specialized Next.js and Three.js platform with hardened enterprise endpoints.',
-              result: `${project.metrics || '120 FPS // VERIFIED PRODUCTION'}`,
+            const pAny = project as any;
+            const meta = {
+              problem: pAny.problem || CASE_STUDY_METAS[project.id]?.problem || 'High complexity architecture requiring bespoke engineering and verified low latency.',
+              solution: pAny.solution || CASE_STUDY_METAS[project.id]?.solution || 'Engineered specialized Next.js platform with hardened enterprise endpoints.',
+              result: pAny.result || CASE_STUDY_METAS[project.id]?.result || `${project.metrics || '120 FPS // VERIFIED PRODUCTION'}`,
             };
 
             return (
@@ -278,3 +291,4 @@ export default function FeaturedWorkSection({
     </section>
   );
 }
+

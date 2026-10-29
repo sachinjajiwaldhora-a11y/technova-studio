@@ -29,6 +29,8 @@ import {
   StudioCMSConfig, PortfolioShowcaseItem,
   STORAGE_KEYS, getStore, SEED_CMS,
 } from '@/lib/store';
+import { CMSDataDictionary } from '@/lib/cms-types';
+import { CMS_SEED_DEFAULTS } from '@/lib/cms';
 
 export default function HomePage() {
   const [bootCompleted, setBootCompleted] = useState(false);
@@ -39,18 +41,29 @@ export default function HomePage() {
   const [trackerInitialCode, setTrackerInitialCode] = useState('');
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmsConfig, setCmsConfig] = useState<StudioCMSConfig>(SEED_CMS);
+  const [cmsContent, setCmsContent] = useState<CMSDataDictionary>(CMS_SEED_DEFAULTS);
 
   useEffect(() => {
     // 1. Hydrate CMS data from localStorage (or SEED fallback)
     const loaded = getStore<StudioCMSConfig>(STORAGE_KEYS.CMS, SEED_CMS);
     setCmsConfig(loaded);
 
-    // 2. Check if already booted in this session
+    // 2. Fetch published content from MongoDB CMS API
+    fetch('/api/cms/content')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json && json.data) {
+          setCmsContent((prev) => ({ ...prev, ...json.data }));
+        }
+      })
+      .catch((e) => console.error('Error fetching live CMS content:', e));
+
+    // 3. Check if already booted in this session
     if (typeof window !== 'undefined' && sessionStorage.getItem('technova_booted') === 'true') {
       setBootCompleted(true);
     }
 
-    // 3. Global Cmd+K / Ctrl+K listener
+    // 4. Global Cmd+K / Ctrl+K listener
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
@@ -98,48 +111,54 @@ export default function HomePage() {
           onOpenCall={() => openBookingWithMode('CALL')}
           tagline={about.heroTagline}
           subTagline={about.subTagline}
+          content={cmsContent.hero}
         />
 
         {/* 2. Trust Strip */}
-        <TrustStrip />
+        <TrustStrip content={cmsContent.trust_strip} />
 
         {/* 3. Featured Work + Live Showcase */}
         <FeaturedWorkSection
           projects={showcaseProjects}
+          cmsData={cmsContent.featured_work}
           onOpenBooking={() => openBookingWithMode('BRIEF')}
         />
 
         {/* 4. Services */}
         <ServicesSection
+          content={cmsContent.services}
           onOpenBooking={() => openBookingWithMode('BRIEF')}
         />
 
         {/* 5. Process (Timeline) */}
         <ProcessSection
+          content={cmsContent.process}
           onOpenBooking={() => openBookingWithMode('BRIEF')}
         />
 
         {/* 6. Stats (Counters) */}
-        <StatsSection stats={about.stats} />
+        <StatsSection stats={about.stats} content={cmsContent.stats} />
 
         {/* 7. Testimonials */}
-        <TestimonialsSection />
+        <TestimonialsSection content={cmsContent.testimonials} />
 
         {/* 8. Studio Dossier & Manifesto */}
         <AboutManifestoSection
           about={about}
+          cmsData={cmsContent.about}
           onOpenBooking={() => openBookingWithMode('BRIEF')}
           onOpenJoin={() => setJoinOpen(true)}
         />
 
         {/* 9. "Become a Technova Architect" (Protected Intake Form) */}
-        <ArchitectSection />
+        <ArchitectSection content={cmsContent.architect} />
 
         {/* 10. CTA Banner */}
         <CtaBannerSection
           onOpenBooking={() => openBookingWithMode('BRIEF')}
           onOpenCall={() => openBookingWithMode('CALL')}
           contactEmail={about.contactEmail}
+          contactData={cmsContent.contact}
         />
       </main>
 
@@ -152,13 +171,15 @@ export default function HomePage() {
         }}
         onOpenJoin={() => setJoinOpen(true)}
         contactEmail={about.contactEmail}
+        contactData={cmsContent.contact}
+        footerData={cmsContent.footer}
       />
 
       {/* ─── 6. PERSISTENT FLOATING ACTIONS (Dial + WhatsApp + Cmd Hint) ─── */}
-      <FloatingActions onOpenCmd={() => setCmdOpen(true)} />
+      <FloatingActions onOpenCmd={() => setCmdOpen(true)} contactData={cmsContent.contact} />
 
       {/* ─── 7. DOCKED ROBOTIC AI AGENT (Bottom-Right) ─── */}
-      <RoboticAgent ready={bootCompleted} />
+      <RoboticAgent ready={bootCompleted} agentData={cmsContent.ai_agent} />
 
       {/* ─── 8. COMMAND PALETTE MODAL (Ctrl+K) ─── */}
       <CommandPalette

@@ -2,10 +2,12 @@
 'use client';
 
 import React from 'react';
-import { Globe, Smartphone, Palette, Cpu, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Globe, Smartphone, Palette, Cpu, ArrowUpRight, CheckCircle2, Layers } from 'lucide-react';
+import { ServicesContent, ServiceItem } from '@/lib/cms-types';
 
 interface ServicesSectionProps {
   onOpenBooking: () => void;
+  content?: ServicesContent;
 }
 
 const SERVICES = [
@@ -63,25 +65,41 @@ const SERVICES = [
   },
 ];
 
-export default function ServicesSection({ onOpenBooking }: ServicesSectionProps) {
+export default function ServicesSection({ onOpenBooking, content }: ServicesSectionProps) {
+  const badgeText = content?.badge || '// ENGINEERING DISCIPLINES & CAPABILITIES';
+  const headingText = content?.heading || 'SERVICES ENGINEERED FOR SCALE';
+  const subText =
+    content?.subText ||
+    "We don't build generic websites. We assemble high-impact digital systems engineered from the ground up for performance, conversion, and architectural distinction.";
+
+  const displayServices = content?.services?.length
+    ? content.services.filter((s) => s.visible).map((s) => ({
+        num: s.num,
+        icon: Globe,
+        title: s.title,
+        description: s.description,
+        deliverables: s.deliverables,
+      }))
+    : SERVICES;
+
   return (
     <section id="services-matrix" className="relative z-10 py-28 px-4 sm:px-8 lg:px-16 border-t border-[var(--border)] bg-[var(--surface-elevated)] overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="max-w-3xl mb-16">
           <div className="font-mono text-[10px] tracking-[0.3em] text-[var(--accent)] uppercase font-bold">
-            // ENGINEERING DISCIPLINES & CAPABILITIES
+            {badgeText}
           </div>
           <h2 className="mt-2 text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-[var(--text)]">
-            SERVICES ENGINEERED FOR SCALE
+            {headingText}
           </h2>
           <p className="mt-3 text-sm text-[var(--text-muted)] leading-relaxed font-light">
-            We don&apos;t build generic websites. We assemble high-impact digital systems engineered from the ground up for performance, conversion, and architectural distinction.
+            {subText}
           </p>
         </div>
 
         {/* 4 Service Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {SERVICES.map((s) => {
+          {displayServices.map((s) => {
             const Icon = s.icon;
             return (
               <div
@@ -139,3 +157,4 @@ export default function ServicesSection({ onOpenBooking }: ServicesSectionProps)
     </section>
   );
 }
+

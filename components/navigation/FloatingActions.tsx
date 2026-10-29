@@ -4,12 +4,20 @@
 import React from 'react';
 import { MessageSquare, Terminal } from 'lucide-react';
 import RadialThemeDial from '@/components/theme/RadialThemeDial';
+import { ContactContent } from '@/lib/cms-types';
 
 interface FloatingActionsProps {
   onOpenCmd: () => void;
+  contactData?: ContactContent;
 }
 
-export default function FloatingActions({ onOpenCmd }: FloatingActionsProps) {
+export default function FloatingActions({ onOpenCmd, contactData }: FloatingActionsProps) {
+  const whatsappNum = (contactData?.whatsappNumber || '919810045567').replace(/\D/g, '');
+  const whatsappMsg =
+    contactData?.whatsappPrefilledMessage ||
+    'Hello Technova Studio Team, I have a project inquiry.';
+  const whatsappUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(whatsappMsg)}`;
+
   return (
     <>
       {/* 1. Theme Dial (Bottom-Left) */}
@@ -29,7 +37,7 @@ export default function FloatingActions({ onOpenCmd }: FloatingActionsProps) {
       {/* 3. Floating WhatsApp Direct Dispatch (Bottom-Right, neatly positioned above or left of AI launcher) */}
       <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-24 z-40">
         <a
-          href="https://wa.me/919810045567?text=Hello%20Technova%20Studio%20Team%2C%20I%20have%20a%20project%20inquiry."
+          href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Contact Technova via WhatsApp"
@@ -47,3 +55,4 @@ export default function FloatingActions({ onOpenCmd }: FloatingActionsProps) {
     </>
   );
 }
+

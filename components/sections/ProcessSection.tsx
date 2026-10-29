@@ -2,10 +2,12 @@
 'use client';
 
 import React from 'react';
-import { Search, Compass, Code, Rocket, LifeBuoy, ArrowRight } from 'lucide-react';
+import { Search, Compass, Code, Rocket, LifeBuoy, ArrowRight, Activity } from 'lucide-react';
+import { ProcessContent } from '@/lib/cms-types';
 
 interface ProcessSectionProps {
   onOpenBooking: () => void;
+  content?: ProcessContent;
 }
 
 const STAGES = [
@@ -51,25 +53,41 @@ const STAGES = [
   },
 ];
 
-export default function ProcessSection({ onOpenBooking }: ProcessSectionProps) {
+export default function ProcessSection({ onOpenBooking, content }: ProcessSectionProps) {
+  const badgeText = content?.badge || '// SPRINT LIFECYCLE & EXECUTION PROTOCOL';
+  const headingText = content?.heading || 'HOW WE BUILD';
+  const subText =
+    content?.subText ||
+    'A battle-tested 5-phase engineering protocol engineered to eliminate scope creep, protect intellectual property, and ship flagships on schedule.';
+
+  const displayStages = content?.steps?.length
+    ? content.steps.map((s, idx) => ({
+        step: s.step || String(idx + 1).padStart(2, '0'),
+        title: s.title,
+        icon: STAGES[idx]?.icon || Activity,
+        subtitle: s.subtitle,
+        description: s.description,
+      }))
+    : STAGES;
+
   return (
     <section id="process-matrix" className="relative z-10 py-28 px-4 sm:px-8 lg:px-16 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="max-w-3xl mb-16">
           <div className="font-mono text-[10px] tracking-[0.3em] text-[var(--accent)] uppercase font-bold">
-            // SPRINT LIFECYCLE & EXECUTION PROTOCOL
+            {badgeText}
           </div>
           <h2 className="mt-2 text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-[var(--text)]">
-            HOW WE BUILD
+            {headingText}
           </h2>
           <p className="mt-3 text-sm text-[var(--text-muted)] leading-relaxed font-light">
-            A battle-tested 5-phase engineering protocol engineered to eliminate scope creep, protect intellectual property, and ship flagships on schedule.
+            {subText}
           </p>
         </div>
 
         {/* Horizontal Timeline Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 relative">
-          {STAGES.map((st, idx) => {
+          {displayStages.map((st, idx) => {
             const Icon = st.icon;
             return (
               <div
@@ -128,3 +146,4 @@ export default function ProcessSection({ onOpenBooking }: ProcessSectionProps) {
     </section>
   );
 }
+

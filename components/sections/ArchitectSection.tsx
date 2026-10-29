@@ -10,6 +10,7 @@ import {
   Department, JoinRequest, STORAGE_KEYS, getStore, setStore, SEED_JOIN_REQUESTS,
 } from '@/lib/store';
 import { saveToMongo } from '@/lib/mongodb-client';
+import { ArchitectContent } from '@/lib/cms-types';
 
 const DEPARTMENTS: Department[] = [
   'WebGL & Graphics',
@@ -19,7 +20,28 @@ const DEPARTMENTS: Department[] = [
   'UI/UX Design',
 ];
 
-export default function ArchitectSection() {
+interface ArchitectSectionProps {
+  content?: ArchitectContent;
+}
+
+export default function ArchitectSection({ content }: ArchitectSectionProps) {
+  if (content && content.enabled === false) {
+    return null;
+  }
+
+  const badgeText = content?.badge || '// TALENT RECRUITMENT & COHORT CLEARANCE';
+  const headingText = content?.heading || 'BECOME A TECHNOVA ARCHITECT';
+  const descText =
+    content?.description ||
+    'We are actively recruiting exceptional WebGL shader engineers, AI systems architects, distributed cloud developers, and spatial UI designers.';
+  const squadBenefitTitle = content?.squadBenefitTitle || 'DECENTRALIZED HIGH-IMPACT SQUAD';
+  const squadBenefitDesc =
+    content?.squadBenefitDesc ||
+    'Work on production contracts with venture-backed AI labs, defense tech platforms, and high-frequency fintech ventures worldwide.';
+  const compTitle = content?.compensationTitle || 'HIGH-COMPENSATION COMMISSION POOL';
+  const compDesc =
+    content?.compensationDesc ||
+    'Direct revenue-sharing per commission with guaranteed milestone payouts and executive clearance levels.';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
@@ -70,35 +92,35 @@ export default function ArchitectSection() {
           <div className="lg:col-span-5 space-y-6">
             <div className="inline-flex items-center space-x-2 font-mono text-[10px] tracking-[0.3em] text-[var(--accent)] uppercase font-bold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>COLLECTIVE INTAKE // TALENT ONBOARDING</span>
+              <span>{badgeText}</span>
             </div>
 
             <h2 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-[var(--text)] leading-tight">
-              BECOME A TECHNOVA ARCHITECT
+              {headingText}
             </h2>
 
             <p className="text-sm text-[var(--text-muted)] leading-relaxed font-light">
-              We are actively recruiting exceptional WebGL shader engineers, AI systems architects, distributed cloud developers, and spatial UI designers.
+              {descText}
             </p>
 
             <div className="space-y-4 pt-2">
               <div className="p-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] space-y-1">
                 <div className="flex items-center space-x-2 text-[var(--accent)] font-mono text-xs font-bold uppercase">
                   <Terminal className="w-4 h-4" />
-                  <span>DECENTRALIZED HIGH-IMPACT SQUAD</span>
+                  <span>{squadBenefitTitle}</span>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] leading-relaxed font-light">
-                  Work on production contracts with venture-backed AI labs, defense tech platforms, and high-frequency fintech ventures worldwide.
+                  {squadBenefitDesc}
                 </p>
               </div>
 
               <div className="p-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] space-y-1">
                 <div className="flex items-center space-x-2 text-[var(--accent-2)] font-mono text-xs font-bold uppercase">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>HIGH-COMPENSATION COMMISSION POOL</span>
+                  <span>{compTitle}</span>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] leading-relaxed font-light">
-                  Direct revenue-sharing per commission with guaranteed milestone payouts and executive clearance levels.
+                  {compDesc}
                 </p>
               </div>
             </div>
@@ -263,3 +285,4 @@ export default function ArchitectSection() {
     </section>
   );
 }
+

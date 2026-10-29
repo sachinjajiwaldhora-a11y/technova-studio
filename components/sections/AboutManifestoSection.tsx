@@ -4,18 +4,22 @@
 import React from 'react';
 import { Shield, Cpu, Lock, Sparkles, Terminal, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { StudioCMSConfig } from '@/lib/store';
+import { AboutContent } from '@/lib/cms-types';
 
 interface AboutManifestoSectionProps {
-  about: StudioCMSConfig['aboutUs'];
+  about?: StudioCMSConfig['aboutUs'] | AboutContent;
+  cmsData?: AboutContent;
   onOpenBooking: () => void;
   onOpenJoin: () => void;
 }
 
 export default function AboutManifestoSection({
-  about,
+  about: legacyAbout,
+  cmsData,
   onOpenBooking,
   onOpenJoin,
 }: AboutManifestoSectionProps) {
+  const activeAbout = cmsData || (legacyAbout as any) || {};
   return (
     <section id="about-matrix" className="relative z-10 py-28 px-4 sm:px-8 lg:px-16 overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -28,16 +32,16 @@ export default function AboutManifestoSection({
           {/* Left Column: Manifesto & Identity */}
           <div className="lg:col-span-7 space-y-6">
             <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight uppercase leading-tight text-[var(--text)]">
-              {about.heroTagline || 'WE BUILD BEYOND DIGITAL'}
+              {activeAbout.heroTagline || 'WE BUILD BEYOND DIGITAL'}
             </h2>
 
             <p className="font-mono text-xs text-[var(--accent)] uppercase tracking-wider">
-              // {about.subTagline || 'An elite collective of systems architects.'}
+              // {activeAbout.subTagline || 'An elite collective of systems architects.'}
             </p>
 
             <div className="border-l-2 border-[var(--accent)] pl-6 py-2">
               <p className="text-[var(--text)] text-sm sm:text-base leading-relaxed font-light">
-                {about.manifesto ||
+                {activeAbout.manifesto ||
                   'Technova Studio is not an agency. We are an engineering collective — a unit of high-caliber architects who craft digital experiences that defy conventional browser limits.'}
               </p>
             </div>
@@ -50,7 +54,7 @@ export default function AboutManifestoSection({
                   <span>MISSION & VISION</span>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] leading-relaxed font-light">
-                  {about.vision || 'Pioneering zero-latency spatial web architectures and mission-critical digital interfaces.'}
+                  {activeAbout.vision || 'Pioneering zero-latency spatial web architectures and mission-critical digital interfaces.'}
                 </p>
               </div>
 
@@ -60,7 +64,7 @@ export default function AboutManifestoSection({
                   <span>ENGINEERING STANDARDS</span>
                 </div>
                 <p className="text-xs text-[var(--text-muted)] leading-relaxed font-light">
-                  {about.methodology || 'Bespoke GLSL shaders, strict TypeScript, zero-knowledge security, and verified 120 FPS standards.'}
+                  {activeAbout.methodology || 'Bespoke GLSL shaders, strict TypeScript, zero-knowledge security, and verified 120 FPS standards.'}
                 </p>
               </div>
             </div>
@@ -73,7 +77,7 @@ export default function AboutManifestoSection({
                   ENTERPRISE INTEGRITY & NDA GUARANTEE
                 </span>
                 <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed font-light">
-                  {about.securityGuarantee || 'Enterprise NDA enforced on day zero. Isolated client staging environments and dedicated clearance.'}
+                  {activeAbout.securityGuarantee || 'Enterprise NDA enforced on day zero. Isolated client staging environments and dedicated clearance.'}
                 </p>
               </div>
             </div>
@@ -84,7 +88,7 @@ export default function AboutManifestoSection({
                 SPECIALIZED ARCHITECTURE HIGHLIGHT:
               </div>
               <p className="text-[var(--text)] italic">
-                &ldquo;{about.teamHighlight}&rdquo;
+                &ldquo;{activeAbout.teamHighlight || 'Zero compromises on compute latency.'}&rdquo;
               </p>
             </div>
 
@@ -92,15 +96,15 @@ export default function AboutManifestoSection({
             <div className="flex flex-wrap gap-3 pt-2 font-mono text-[10px]">
               <div className="px-3.5 py-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)]">
                 <span className="text-[var(--text-muted)]">ESTABLISHED: </span>
-                <span className="text-[var(--text)] font-bold">{about.foundedYear}</span>
+                <span className="text-[var(--text)] font-bold">{activeAbout.foundedYear || '2024'}</span>
               </div>
               <div className="px-3.5 py-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)]">
                 <span className="text-[var(--text-muted)]">OPERATIONS: </span>
-                <span className="text-[var(--text)] font-bold">{about.location}</span>
+                <span className="text-[var(--text)] font-bold">{activeAbout.location || 'GLOBAL // DISTRIBUTED'}</span>
               </div>
               <div className="px-3.5 py-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)]">
                 <span className="text-[var(--text-muted)]">DISPATCH: </span>
-                <span className="text-[var(--accent)] font-bold">{about.contactEmail}</span>
+                <span className="text-[var(--accent)] font-bold">{activeAbout.contactEmail || 'ops@technova.dev'}</span>
               </div>
             </div>
           </div>
@@ -149,3 +153,4 @@ export default function AboutManifestoSection({
     </section>
   );
 }
+

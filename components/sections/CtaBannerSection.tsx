@@ -6,18 +6,35 @@ import {
   FileCode2, Calendar, MessageSquare, Phone, Mail, ArrowUpRight,
   ShieldCheck, Clock, Sparkles,
 } from 'lucide-react';
+import { ContactContent } from '@/lib/cms-types';
 
 interface CtaBannerSectionProps {
   onOpenBooking: () => void;
   onOpenCall: () => void;
   contactEmail?: string;
+  contactData?: ContactContent;
 }
 
 export default function CtaBannerSection({
   onOpenBooking,
   onOpenCall,
   contactEmail = 'ops@technovastudio.dev',
+  contactData,
 }: CtaBannerSectionProps) {
+  const headline = contactData?.headline || 'HAVE AN IDEA?';
+  const highlightText = contactData?.highlightText || "LET'S BUILD IT.";
+  const subText =
+    contactData?.subText ||
+    'Initiate a discovery briefing, submit your project specification, or reach our operations desk directly. Every technical inquiry receives a dedicated architect response within 24 hours.';
+  const email = contactData?.email || contactEmail;
+  const phone = contactData?.phone || '+91 98100 45567';
+  const whatsappNum = (contactData?.whatsappNumber || '919810045567').replace(/\D/g, '');
+  const whatsappMsg =
+    contactData?.whatsappPrefilledMessage ||
+    'Hello Technova Studio Team, I have a project inquiry.';
+  const whatsappUrl = `https://wa.me/${whatsappNum}?text=${encodeURIComponent(whatsappMsg)}`;
+  const ndaText = contactData?.ndaGuaranteeText || 'ENTERPRISE NDA SIGNED ON DAY ZERO';
+  const responseTime = contactData?.responseTimeGuarantee || 'RESPONSE GUARANTEED < 24 HOURS';
   return (
     <section id="contact-matrix" className="relative z-10 py-24 px-4 sm:px-8 lg:px-16 overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -37,12 +54,12 @@ export default function CtaBannerSection({
             </div>
 
             <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-[var(--text)] leading-tight">
-              HAVE AN IDEA? <br />
-              <span className="text-[var(--accent)]">LET&apos;S BUILD IT.</span>
+              {headline} <br />
+              <span className="text-[var(--accent)]">{highlightText}</span>
             </h2>
 
             <p className="mt-4 text-sm sm:text-base text-[var(--text-muted)] leading-relaxed font-light">
-              Initiate a discovery briefing, submit your project specification, or reach our operations desk directly. Every technical inquiry receives a dedicated architect response within 24 hours.
+              {subText}
             </p>
 
             {/* Primary Action Buttons */}
@@ -75,7 +92,7 @@ export default function CtaBannerSection({
 
               {/* WhatsApp */}
               <a
-                href="https://wa.me/919810045567?text=Hello%20Technova%20Studio%20Team%2C%20I%20have%20a%20project%20inquiry."
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-[var(--radius)] border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 font-mono text-xs transition-colors font-medium"
@@ -86,20 +103,20 @@ export default function CtaBannerSection({
 
               {/* Direct Call */}
               <a
-                href="tel:+919810045567"
+                href={`tel:${phone}`}
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:border-[var(--accent)] font-mono text-xs transition-colors font-medium"
               >
                 <Phone className="w-3.5 h-3.5 text-[var(--accent)]" />
-                <span>+91 98100 45567</span>
+                <span>{phone}</span>
               </a>
 
               {/* Email */}
               <a
-                href={`mailto:${contactEmail}`}
+                href={`mailto:${email}`}
                 className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:border-[var(--accent)] font-mono text-xs transition-colors font-medium"
               >
                 <Mail className="w-3.5 h-3.5 text-[var(--accent-2)]" />
-                <span>{contactEmail}</span>
+                <span>{email}</span>
               </a>
             </div>
 
@@ -107,11 +124,11 @@ export default function CtaBannerSection({
             <div className="mt-6 flex flex-wrap items-center gap-6 font-mono text-[10px] text-[var(--text-muted)]">
               <span className="flex items-center space-x-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
-                <span>ENTERPRISE NDA SIGNED ON DAY ZERO</span>
+                <span>{ndaText}</span>
               </span>
               <span className="flex items-center space-x-1.5">
                 <Clock className="w-3.5 h-3.5 text-[var(--accent-2)]" />
-                <span>RESPONSE GUARANTEED &lt; 24 HOURS</span>
+                <span>{responseTime}</span>
               </span>
             </div>
           </div>
@@ -120,3 +137,4 @@ export default function CtaBannerSection({
     </section>
   );
 }
+

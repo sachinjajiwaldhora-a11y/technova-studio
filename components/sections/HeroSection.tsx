@@ -3,12 +3,14 @@
 
 import React from 'react';
 import { ArrowUpRight, Calendar, Sparkles, Terminal, Activity, ChevronRight, ShieldCheck } from 'lucide-react';
+import { HeroSectionContent } from '@/lib/cms-types';
 
 interface HeroSectionProps {
   onOpenBooking: () => void;
   onOpenCall: () => void;
   tagline?: string;
   subTagline?: string;
+  content?: HeroSectionContent;
 }
 
 export default function HeroSection({
@@ -16,7 +18,15 @@ export default function HeroSection({
   onOpenCall,
   tagline = 'WE BUILD BEYOND DIGITAL EXPERIENCES',
   subTagline = 'An elite engineering collective crafting high-performance WebGL platforms, custom AI architectures, and flagship digital products.',
+  content,
 }: HeroSectionProps) {
+  const headlinePrefix = content?.headlinePrefix || 'WE ENGINEER';
+  const highlightWords = content?.highlightWords || 'FLAGSHIP DIGITAL PRODUCTS';
+  const headlineSuffix = content?.headlineSuffix || 'THAT DEFY CONVENTIONS.';
+  const displaySubtext = content?.subText || subTagline;
+  const badgeText = content?.availabilityBadge || 'AVAILABLE FOR Q2 & Q3 COMMISSIONS // 120 FPS VERIFIED';
+  const primaryBtnText = content?.primaryCtaLabel || 'START A SPRINT // TRANSMIT BRIEF';
+  const secondaryBtnText = content?.secondaryCtaLabel || 'SCHEDULE DISCOVERY CALL';
   return (
     <section className="relative min-h-[92vh] flex flex-col justify-center px-4 sm:px-8 lg:px-16 pt-28 pb-16 overflow-hidden">
       {/* Decorative ambient background glows */}
@@ -38,17 +48,17 @@ export default function HeroSection({
 
         {/* Hero Heading */}
         <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight uppercase leading-[0.98] text-[var(--text)]">
-          WE ENGINEER <br />
+          {headlinePrefix} <br />
           <span className="bg-gradient-to-r from-[var(--text)] via-[var(--accent)] to-[var(--accent-2)] bg-clip-text text-transparent">
-            FLAGSHIP DIGITAL PRODUCTS
+            {highlightWords}
           </span>{' '}
           <br />
-          THAT DEFY CONVENTIONS.
+          {headlineSuffix}
         </h1>
 
         {/* Sub-text */}
         <p className="mt-6 max-w-2xl text-base sm:text-lg text-[var(--text-muted)] font-light leading-relaxed">
-          {subTagline}
+          {displaySubtext}
         </p>
 
         {/* Action Buttons */}
@@ -57,7 +67,7 @@ export default function HeroSection({
             onClick={onOpenBooking}
             className="theme-btn-primary px-7 py-3.5 text-xs font-bold uppercase tracking-wider"
           >
-            <span>START A PROJECT</span>
+            <span>{primaryBtnText}</span>
             <ArrowUpRight className="w-4 h-4" />
           </button>
 
@@ -76,7 +86,7 @@ export default function HeroSection({
             className="inline-flex items-center space-x-2 px-5 py-3.5 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-elevated)] font-mono text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all uppercase"
           >
             <Calendar className="w-4 h-4 text-[var(--accent)]" />
-            <span>SCHEDULE CALL</span>
+            <span>{secondaryBtnText}</span>
           </button>
         </div>
 
@@ -101,3 +111,4 @@ export default function HeroSection({
     </section>
   );
 }
+

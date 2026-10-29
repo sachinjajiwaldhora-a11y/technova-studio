@@ -3,23 +3,33 @@
 
 import React from 'react';
 import { Activity, Shield, Award, Users } from 'lucide-react';
+import { StatsContent } from '@/lib/cms-types';
 
 interface StatItem {
   label: string;
   value: string;
+  suffix?: string;
 }
 
 interface StatsSectionProps {
-  stats: StatItem[];
+  stats?: StatItem[];
+  content?: StatsContent;
 }
 
-export default function StatsSection({ stats }: StatsSectionProps) {
-  const displayStats = stats && stats.length > 0 ? stats : [
-    { label: 'FPS LOCKED BENCHMARK', value: '120' },
-    { label: 'FLAGSHIPS SHIPPED', value: '12+' },
-    { label: 'PLATFORM UPTIME', value: '99.99%' },
-    { label: 'GLOBAL JURISDICTIONS', value: '8+' },
-  ];
+export default function StatsSection({ stats, content }: StatsSectionProps) {
+  const displayStats = content?.stats?.length
+    ? content.stats.map((s) => ({
+        label: s.label,
+        value: `${s.value}${s.suffix || ''}`,
+      }))
+    : stats && stats.length > 0
+    ? stats
+    : [
+        { label: 'FPS LOCKED BENCHMARK', value: '120' },
+        { label: 'FLAGSHIPS SHIPPED', value: '12+' },
+        { label: 'PLATFORM UPTIME', value: '99.99%' },
+        { label: 'GLOBAL JURISDICTIONS', value: '8+' },
+      ];
 
   return (
     <section id="stats-matrix" className="relative z-10 py-20 px-4 sm:px-8 lg:px-16 border-y border-[var(--border)] bg-[var(--surface-elevated)] overflow-hidden">
@@ -43,3 +53,4 @@ export default function StatsSection({ stats }: StatsSectionProps) {
     </section>
   );
 }
+
