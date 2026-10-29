@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId, Filter, Document } from 'mongodb';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { getAuthenticatedMember } from '@/lib/auth';
+import { hashPassword } from '@/lib/password';
 
 // Map URL slugs to MongoDB collection names
 const COLLECTION_MAP: Record<string, string> = {
@@ -261,9 +262,13 @@ export async function POST(
     } else {
       if (body.id) {
         const { _id, password, passwordHash, ...safeUpdate } = body;
+        const passHashUpdate: Record<string, string> = {};
+        if (collectionName === MONGO_COLLECTIONS.MEMBERS && typeof password === 'string' && password.trim()) {
+          passHashUpdate.passwordHash = await hashPassword(password.trim());
+        }
         const result = await collection.updateOne(
           { id: body.id },
-          { $set: safeUpdate },
+          { $set: { ...safeUpdate, ...passHashUpdate } },
           { upsert: true }
         );
         return NextResponse.json({ success: true, result });
@@ -330,8 +335,13 @@ export async function PUT(
       : buildDocFilter(targetId);
 
     const { _id, password, passwordHash, ...safeBody } = body;
+    const passHashUpdate: Record<string, string> = {};
+    if (collectionName === MONGO_COLLECTIONS.MEMBERS && typeof password === 'string' && password.trim()) {
+      passHashUpdate.passwordHash = await hashPassword(password.trim());
+    }
     const updateDoc = {
       ...safeBody,
+      ...passHashUpdate,
       updatedAt: new Date().toISOString(),
     };
 

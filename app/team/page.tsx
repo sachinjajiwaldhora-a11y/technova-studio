@@ -267,6 +267,12 @@ export default function TeamDashboard() {
     });
   }
 
+  function handleMembersChange(next: StudioMember[]) {
+    syncRemoteCollection('members', members, next);
+    setMembers(next);
+    setStore(STORAGE_KEYS.MEMBERS, next);
+  }
+
   async function handleLogout() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -337,7 +343,7 @@ export default function TeamDashboard() {
             currentUser={currentUser!}
             perms={perms}
             members={members}
-            onMembersChange={setMembers}
+            onMembersChange={handleMembersChange}
           />
         );
       case 'ANALYTICS':
