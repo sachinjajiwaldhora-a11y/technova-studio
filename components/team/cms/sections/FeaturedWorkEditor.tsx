@@ -107,6 +107,10 @@ export default function FeaturedWorkEditor({
       return;
     }
 
+    const liveDemoLink = (completedProj.resourceLinks || []).find((l: any) => l.type === 'live_demo')?.url;
+    const firstResourceLink = (completedProj.resourceLinks || [])[0]?.url;
+    const resolvedLiveUrl = completedProj.liveUrl || liveDemoLink || firstResourceLink || '';
+
     const newItem: FeaturedProjectItem = {
       id: `proj-${completedProj.id}`,
       projectId: completedProj.id,
@@ -121,7 +125,7 @@ export default function FeaturedWorkEditor({
       solution: completedProj.solution || 'Architected modern resilient stack.',
       result: completedProj.result || 'Production-grade delivery on schedule.',
       techStack: completedProj.techStack || [],
-      liveUrl: completedProj.liveUrl || '',
+      liveUrl: resolvedLiveUrl,
       allowIframe: true,
       featured: true,
       order: data.projects.length + 1,

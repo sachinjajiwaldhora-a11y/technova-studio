@@ -47,6 +47,10 @@ export async function GET(request: NextRequest) {
 
       const overrides = bridge?.publicOverrides || {};
 
+      const liveDemoLink = (prj.resourceLinks || []).find((l: any) => l.type === 'live_demo')?.url;
+      const firstResourceLink = (prj.resourceLinks || [])[0]?.url;
+      const resolvedLiveUrl = overrides.liveUrl || prj.liveUrl || liveDemoLink || firstResourceLink || 'https://technovastudio.com';
+
       // EXPLICIT SANITIZATION: Strictly NO private client financials, dealNotes, internal hourLogs, or managerNotes
       const item: FeaturedProjectItem = {
         id: `feat-${prj.id}`,
@@ -62,7 +66,7 @@ export async function GET(request: NextRequest) {
         solution: overrides.solution || 'Engineered custom zero-latency WebGL shaders and distributed cloud clusters.',
         result: overrides.result || '120 FPS locked // 99.99% uptime // Zero security vulnerabilities',
         techStack: overrides.techStack || ['WebGL', 'GLSL', 'TypeScript', 'Next.js'],
-        liveUrl: overrides.liveUrl || prj.liveUrl || 'https://technovastudio.com',
+        liveUrl: resolvedLiveUrl,
         repoUrl: prj.repoUrl,
         coverImage: overrides.coverImage,
         allowIframe: overrides.allowIframe ?? true,

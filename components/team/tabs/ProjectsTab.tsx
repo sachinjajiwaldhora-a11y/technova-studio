@@ -243,11 +243,37 @@ export default function ProjectsTab({
     const li = linkInputs[projectId];
     if (!li?.label || !li?.url) return;
     const link: ResourceLink = { id: `lnk-${Date.now()}`, label: li.label, url: li.url, type: li.type };
-    const updated = projects.map((p) =>
-      p.id === projectId ? { ...p, resourceLinks: [...p.resourceLinks, link] } : p
-    );
+    const updated = projects.map((p) => {
+      if (p.id !== projectId) return p;
+      const currentLinks = p.resourceLinks || [];
+      const nextLinks = [...currentLinks, link];
+      const shouldSetLiveUrl = !p.liveUrl || link.type === 'live_demo';
+      return {
+        ...p,
+        resourceLinks: nextLinks,
+        ...(shouldSetLiveUrl ? { liveUrl: link.url } : {}),
+      };
+    });
     saveAndUpdate(updated);
     setLinkInputs((prev) => ({ ...prev, [projectId]: { label: '', url: '', type: 'other' } }));
+  }
+
+  function removeLink(projectId: string, linkId: string) {
+    if (!perms.canAddProjectLinks) return;
+    const updated = projects.map((p) => {
+      if (p.id !== projectId) return p;
+      const nextLinks = (p.resourceLinks || []).filter((l) => l.id !== linkId);
+      let liveUrl = p.liveUrl;
+      if (liveUrl && !nextLinks.some((l) => l.url === liveUrl)) {
+        liveUrl = nextLinks.find((l) => l.type === 'live_demo')?.url || nextLinks[0]?.url;
+      }
+      return {
+        ...p,
+        resourceLinks: nextLinks,
+        liveUrl,
+      };
+    });
+    saveAndUpdate(updated);
   }
 
   function deleteProject(projectId: string) {
@@ -660,18 +686,48 @@ export default function ProjectsTab({
                     <div className="space-y-1.5">
                       {project.resourceLinks.map((link) => {
                         const LinkIcon = linkTypeIcon[link.type];
+                        const isPrimary = project.liveUrl === link.url || link.type === 'live_demo';
                         return (
-                          <a
+                          <div
                             key={link.id}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="flex items-center space-x-2 border border-white/8 bg-white/[0.02] px-3 py-2 hover:border-red-500/30 transition-colors group"
                           >
                             <LinkIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                            <span className="font-mono text-xs text-zinc-300 group-hover:text-white flex-1">{link.label}</span>
-                            <ArrowUpRight className="w-3 h-3 text-zinc-600 group-hover:text-red-400" />
-                          </a>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-mono text-xs text-zinc-300 group-hover:text-white flex-1 truncate hover:underline"
+                            >
+                              {link.label}
+                            </a>
+                            {isPrimary && (
+                              <span className="px-1.5 py-0.5 text-[8px] font-mono tracking-wider text-emerald-400 border border-emerald-500/30 bg-emerald-950/20 shrink-0">
+                                PRIMARY LIVE
+                              </span>
+                            )}
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-zinc-600 group-hover:text-red-400 p-0.5"
+                            >
+                              <ArrowUpRight className="w-3.5 h-3.5" />
+                            </a>
+                            {perms.canAddProjectLinks && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeLink(project.id, link.id);
+                                }}
+                                title="Remove link"
+                                className="text-zinc-600 hover:text-red-400 text-xs px-1"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
