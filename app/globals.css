@@ -423,9 +423,9 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    TEAM PORTAL THEMES (3 Visual Themes)
-   - Dark Tech: OLED blacks, neon red/cyan accents, HUD terminal styling
-   - Minimal Clean: Crisp paper canvas, slate borders, sapphire focus
-   - Bold Gradient: Deep indigo cosmos, glowing neon purple/cyan aurora glass
+   - Dark Tech: OLED blacks, neon red accents, HUD terminal styling
+   - Pro Dark: Neutral charcoal workspace, subtle borders, off-white text, calm blue accent
+   - Pro Light: Crisp light workspace, clean borders, near-black text, calm blue accent
    ───────────────────────────────────────────────────────────────────────────── */
 
 [data-portal-theme="dark-tech"] {
@@ -443,34 +443,34 @@ h1, h2, h3, h4, h5, h6 {
   --portal-accent-bg: rgba(239, 68, 68, 0.15);
 }
 
-[data-portal-theme="minimal-clean"] {
-  --portal-bg: #f8fafc;
-  --portal-sidebar: #ffffff;
-  --portal-surface: #ffffff;
-  --portal-surface-sunken: #f1f5f9;
-  --portal-surface-elevated: #ffffff;
-  --portal-border: #e2e8f0;
-  --portal-text: #0f172a;
-  --portal-text-muted: #64748b;
-  --portal-accent: #2563eb;
+[data-portal-theme="pro-dark"] {
+  --portal-bg: #171717;
+  --portal-sidebar: #1e1e1e;
+  --portal-surface: #212121;
+  --portal-surface-sunken: #121212;
+  --portal-surface-elevated: #282828;
+  --portal-border: rgba(255, 255, 255, 0.1);
+  --portal-text: #f3f4f6;
+  --portal-text-muted: #9ca3af;
+  --portal-accent: #3b82f6;
   --portal-accent-contrast: #ffffff;
-  --portal-accent-border: rgba(37, 99, 235, 0.5);
-  --portal-accent-bg: rgba(37, 99, 235, 0.1);
+  --portal-accent-border: rgba(59, 130, 246, 0.4);
+  --portal-accent-bg: rgba(59, 130, 246, 0.12);
 }
 
-[data-portal-theme="bold-gradient"] {
-  --portal-bg: #090514;
-  --portal-sidebar: #0f0822;
-  --portal-surface: #140b2e;
-  --portal-surface-sunken: #0b0518;
-  --portal-surface-elevated: #1a0f3c;
-  --portal-border: rgba(168, 85, 247, 0.25);
-  --portal-text: #f8fafc;
-  --portal-text-muted: #c084fc;
-  --portal-accent: #d946ef;
+[data-portal-theme="pro-light"] {
+  --portal-bg: #f9fafb;
+  --portal-sidebar: #ffffff;
+  --portal-surface: #ffffff;
+  --portal-surface-sunken: #f3f4f6;
+  --portal-surface-elevated: #ffffff;
+  --portal-border: #e5e7eb;
+  --portal-text: #111827;
+  --portal-text-muted: #6b7280;
+  --portal-accent: #2563eb;
   --portal-accent-contrast: #ffffff;
-  --portal-accent-border: rgba(217, 70, 239, 0.5);
-  --portal-accent-bg: rgba(217, 70, 239, 0.15);
+  --portal-accent-border: rgba(37, 99, 235, 0.4);
+  --portal-accent-bg: rgba(37, 99, 235, 0.1);
 }
 
 .portal-theme-wrapper {
@@ -487,21 +487,21 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--portal-border);
 }
 
-[data-portal-theme="minimal-clean"] .portal-sidebar,
-[data-portal-theme="minimal-clean"] .portal-theme-wrapper {
-  color: #0f172a;
+[data-portal-theme="pro-light"] .portal-sidebar,
+[data-portal-theme="pro-light"] .portal-theme-wrapper {
+  color: #111827;
 }
 
-[data-portal-theme="minimal-clean"] nav button {
-  color: #475569;
+[data-portal-theme="pro-light"] nav button {
+  color: #4b5563;
 }
 
-[data-portal-theme="minimal-clean"] nav button:hover {
+[data-portal-theme="pro-light"] nav button:hover {
   background-color: rgba(0, 0, 0, 0.05);
-  color: #0f172a;
+  color: #111827;
 }
 
-[data-portal-theme="bold-gradient"] nav button:hover {
-  background-color: rgba(217, 70, 239, 0.08);
-  color: #f8fafc;
+[data-portal-theme="pro-dark"] nav button:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #f3f4f6;
 }

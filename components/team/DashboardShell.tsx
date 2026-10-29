@@ -124,7 +124,7 @@ export default function DashboardShell({
           </div>
         </div>
 
-        {/* Portal Theme Switcher (3 Themes) */}
+        {/* Portal Theme Switcher (3 Themes: Dark Tech, Pro Dark, Pro Light) */}
         <div className="px-4 py-3 border-b portal-border space-y-1.5 bg-[var(--portal-surface-sunken,rgba(0,0,0,0.2))]">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[8px] uppercase tracking-wider text-[var(--portal-text-muted,#71717a)] font-bold flex items-center gap-1">
@@ -132,11 +132,11 @@ export default function DashboardShell({
               PORTAL THEME
             </span>
             <span className="font-mono text-[8px] text-[var(--portal-accent,#ef4444)] uppercase font-semibold">
-              {theme === 'dark-tech' ? 'DARK TECH' : theme === 'minimal-clean' ? 'MINIMAL' : 'BOLD GRAD'}
+              {theme === 'dark-tech' ? 'DARK TECH' : theme === 'pro-dark' ? 'PRO DARK' : 'PRO LIGHT'}
             </span>
           </div>
           <div className="grid grid-cols-3 gap-1 p-0.5 rounded border portal-border bg-[var(--portal-surface,rgba(0,0,0,0.3))]">
-            {(['dark-tech', 'minimal-clean', 'bold-gradient'] as PortalTheme[]).map((t) => (
+            {(['dark-tech', 'pro-dark', 'pro-light'] as PortalTheme[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -147,7 +147,7 @@ export default function DashboardShell({
                     : 'text-[var(--portal-text-muted,#71717a)] hover:text-[var(--portal-text,#ffffff)]'
                 }`}
               >
-                {t === 'dark-tech' ? 'TECH' : t === 'minimal-clean' ? 'CLEAN' : 'BOLD'}
+                {t === 'dark-tech' ? 'TECH' : t === 'pro-dark' ? 'DARK' : 'LIGHT'}
               </button>
             ))}
           </div>
@@ -204,32 +204,32 @@ export default function DashboardShell({
       </aside>
 
       {/* ── MOBILE TOP NAV ───────────────────────────────────── */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#050505] border-b border-white/8 px-4 py-3 flex items-center justify-between">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[var(--portal-sidebar,#050505)] border-b portal-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Shield className="w-4 h-4 text-red-500" />
-          <span className="font-mono text-xs tracking-widest text-white font-bold">TECHNOVA CONSOLE</span>
+          <Shield className="w-4 h-4 text-[var(--portal-accent,#ef4444)]" />
+          <span className="font-mono text-xs tracking-widest text-[var(--portal-text,#ffffff)] font-bold">TECHNOVA CONSOLE</span>
         </div>
         <div className="flex items-center space-x-2">
           <button
             type="button"
             onClick={cycleTheme}
             title="Cycle Portal Theme"
-            className="p-1.5 text-zinc-400 hover:text-white flex items-center gap-1 font-mono text-[9px] uppercase"
+            className="p-1.5 text-[var(--portal-text-muted,#a1a1aa)] hover:text-[var(--portal-text,#ffffff)] flex items-center gap-1 font-mono text-[9px] uppercase"
           >
-            <Palette className="w-3.5 h-3.5 text-red-500" />
+            <Palette className="w-3.5 h-3.5 text-[var(--portal-accent,#ef4444)]" />
             <span className="hidden sm:inline">{theme}</span>
           </button>
-          <button onClick={onGoHome} className="p-1.5 text-zinc-400 hover:text-white">
+          <button onClick={onGoHome} className="p-1.5 text-[var(--portal-text-muted,#a1a1aa)] hover:text-[var(--portal-text,#ffffff)]">
             <Home className="w-4 h-4" />
           </button>
-          <button onClick={onLogout} className="p-1.5 text-zinc-400 hover:text-red-400">
+          <button onClick={onLogout} className="p-1.5 text-[var(--portal-text-muted,#a1a1aa)] hover:text-[var(--portal-accent,#ef4444)]">
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* ── MOBILE BOTTOM NAV ────────────────────────────────── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#050505] border-t border-white/8 flex overflow-x-auto">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[var(--portal-sidebar,#050505)] border-t portal-border flex overflow-x-auto">
         {visibleTabs.slice(0, 7).map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -238,7 +238,7 @@ export default function DashboardShell({
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`flex-1 flex flex-col items-center py-2.5 px-1 min-w-[60px] transition-colors ${
-                isActive ? 'text-red-500' : 'text-zinc-500'
+                isActive ? 'text-[var(--portal-accent,#ef4444)]' : 'text-[var(--portal-text-muted,#71717a)]'
               }`}
             >
               <Icon className="w-4 h-4" />

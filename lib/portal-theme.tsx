@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type PortalTheme = 'dark-tech' | 'minimal-clean' | 'bold-gradient';
+export type PortalTheme = 'dark-tech' | 'pro-dark' | 'pro-light';
 
 interface PortalThemeContextType {
   theme: PortalTheme;
@@ -18,7 +18,23 @@ const PortalThemeContext = createContext<PortalThemeContextType>({
 });
 
 const STORAGE_KEY = 'technova_portal_theme';
-const THEMES: PortalTheme[] = ['dark-tech', 'minimal-clean', 'bold-gradient'];
+const THEMES: PortalTheme[] = ['dark-tech', 'pro-dark', 'pro-light'];
+
+export function migratePortalTheme(storedValue: string | null): PortalTheme {
+  if (!storedValue) return 'dark-tech';
+  const val = storedValue.toLowerCase().trim();
+  if (val === 'dark-tech') return 'dark-tech';
+  if (val === 'pro-dark') return 'pro-dark';
+  if (val === 'pro-light') return 'pro-light';
+  // Safe migration of legacy portal theme values
+  if (val === 'minimal-clean' || val === 'minimal' || val === 'clean' || val === 'light') {
+    return 'pro-light';
+  }
+  if (val === 'bold-gradient' || val === 'gradient' || val === 'bold') {
+    return 'pro-dark';
+  }
+  return 'dark-tech';
+}
 
 export function PortalThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<PortalTheme>('dark-tech');
@@ -26,12 +42,14 @@ export function PortalThemeProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) as PortalTheme | null;
-      if (saved && THEMES.includes(saved)) {
-        setThemeState(saved);
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const resolved = migratePortalTheme(raw);
+      setThemeState(resolved);
+      if (raw && raw !== resolved) {
+        localStorage.setItem(STORAGE_KEY, resolved);
       }
     } catch (e) {
-      // localStorage may fail in restricted iframes
+      // localStorage may fail in restricted sandboxes
     }
     setMounted(true);
   }, []);
