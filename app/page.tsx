@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Scene3D from '@/components/canvas/Scene3D';
+import ThemeBackground from '@/components/background/ThemeBackground';
 import BootSequence from '@/components/entry/BootSequence';
 import Navbar from '@/components/navigation/Navbar';
 import Footer from '@/components/navigation/Footer';
@@ -77,10 +77,8 @@ export default function HomePage() {
       {/* ─── 1. BOOT SEQUENCE (Self-terminates if already booted in session) ─── */}
       <BootSequence onComplete={() => setBootCompleted(true)} />
 
-      {/* ─── 2. BACKGROUND 3D WIREFRAME PARTICLES (Fixed Behind) ─── */}
-      <div className="fixed inset-0 pointer-events-none opacity-40 z-0">
-        <Scene3D />
-      </div>
+      {/* ─── 2. THEME-SPECIFIC BACKGROUND SYSTEM (CSS/SVG Cross-fade) ─── */}
+      <ThemeBackground />
 
       {/* ─── 3. STICKY NAVBAR ─── */}
       <Navbar

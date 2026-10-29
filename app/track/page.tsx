@@ -4,7 +4,7 @@
 import React, { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import StatusTrackerModal from '@/components/modals/StatusTrackerModal';
-import Scene3D from '@/components/canvas/Scene3D';
+import ThemeBackground from '@/components/background/ThemeBackground';
 import { ArrowLeft } from 'lucide-react';
 
 function TrackContent() {
@@ -14,9 +14,7 @@ function TrackContent() {
 
   return (
     <main className="relative min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center p-4">
-      <div className="fixed inset-0 pointer-events-none opacity-30 z-0">
-        <Scene3D />
-      </div>
+      <ThemeBackground />
       <div className="absolute top-6 left-6 z-50">
         <button
           onClick={() => router.push('/')}

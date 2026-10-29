@@ -308,6 +308,100 @@ h1, h2, h3, h4, h5, h6 {
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   THEME BACKGROUND ANIMATIONS (CSS-ONLY)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Bold Gradient Aurora Mesh Drift */
+@keyframes aurora-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(80px, 40px) scale(1.1);
+  }
+}
+
+@keyframes aurora-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-70px, -50px) scale(1.08);
+  }
+}
+
+@keyframes aurora-3 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(50px, -60px) scale(1.05);
+  }
+}
+
+.animate-aurora-1 {
+  animation: aurora-1 22s ease-in-out infinite;
+}
+.animate-aurora-2 {
+  animation: aurora-2 26s ease-in-out infinite;
+}
+.animate-aurora-3 {
+  animation: aurora-3 30s ease-in-out infinite;
+}
+
+/* Minimal Clean Browser Float */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(2.5deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(-1.5deg);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+.animate-float-reverse {
+  animation: float-reverse 9s ease-in-out infinite;
+}
+
+/* Neo-Brutalism Gentle Wobble */
+@keyframes brutal-wobble-1 {
+  0%, 100% {
+    transform: rotate(12deg) translateY(0px);
+  }
+  50% {
+    transform: rotate(15deg) translateY(-6px);
+  }
+}
+
+@keyframes brutal-wobble-2 {
+  0%, 100% {
+    transform: rotate(-6deg) translateY(0px);
+  }
+  50% {
+    transform: rotate(-4deg) translateY(6px);
+  }
+}
+
+.animate-brutal-wobble-1 {
+  animation: brutal-wobble-1 5s ease-in-out infinite;
+}
+.animate-brutal-wobble-2 {
+  animation: brutal-wobble-2 6s ease-in-out infinite;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
@@ -315,5 +409,14 @@ h1, h2, h3, h4, h5, h6 {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .animate-aurora-1,
+  .animate-aurora-2,
+  .animate-aurora-3,
+  .animate-float-slow,
+  .animate-float-reverse,
+  .animate-brutal-wobble-1,
+  .animate-brutal-wobble-2 {
+    animation: none !important;
   }
 }
