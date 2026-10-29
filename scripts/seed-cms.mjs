@@ -18,9 +18,84 @@ async function seed() {
 
     const db = client.db(dbName);
     const sectionsCol = db.collection('cms_sections');
+    const versionsCol = db.collection('cms_versions');
+    const auditCol = db.collection('cms_audit_log');
     const bridgeCol = db.collection('featured_projects');
 
     console.log('📝 Seeding 15 CMS sections...');
+    const SECTION_KEYS = [
+      'hero',
+      'trust_strip',
+      'featured_work',
+      'services',
+      'process',
+      'stats',
+      'testimonials',
+      'about',
+      'architect',
+      'contact',
+      'forms',
+      'footer',
+      'seo',
+      'theme_default',
+      'ai_agent',
+    ];
+
+    for (const key of SECTION_KEYS) {
+      await sectionsCol.updateOne(
+        { sectionKey: key },
+        {
+          $setOnInsert: {
+            id: key,
+            sectionKey: key,
+            status: 'PUBLISHED',
+            lastEditedBy: 'system-seed',
+            lastEditedAt: new Date().toISOString(),
+            publishedBy: 'system-seed',
+            publishedAt: new Date().toISOString(),
+          },
+        },
+        { upsert: true }
+      );
+    }
+    console.log('✅ 15 CMS sections initialized in `cms_sections`.');
+
+    // Baseline audit log
+    await auditCol.updateOne(
+      { id: 'audit-baseline-init' },
+      {
+        $setOnInsert: {
+          id: 'audit-baseline-init',
+          timestamp: new Date().toISOString(),
+          action: 'publish',
+          sectionKey: 'all',
+          authorId: 'system-seed',
+          authorName: 'System Baseline',
+          summary: 'CMS initial collections baseline migration',
+        },
+      },
+      { upsert: true }
+    );
+    console.log('✅ Baseline audit trail initialized in `cms_audit_log`.');
+
+    // Baseline version snapshot
+    await versionsCol.updateOne(
+      { id: 'ver-baseline-hero' },
+      {
+        $setOnInsert: {
+          id: 'ver-baseline-hero',
+          sectionKey: 'hero',
+          versionNumber: 1,
+          authorId: 'system-seed',
+          authorName: 'System Baseline',
+          timestamp: new Date().toISOString(),
+          summary: 'Baseline v1 hero snapshot',
+        },
+      },
+      { upsert: true }
+    );
+    console.log('✅ Baseline version history initialized in `cms_versions`.');
+
     // Seed bridge mapping for completed project prj-003
     await bridgeCol.updateOne(
       { projectId: 'prj-003' },
@@ -41,7 +116,7 @@ async function seed() {
       },
       { upsert: true }
     );
-    console.log('✅ Completed projects bridge seeded.');
+    console.log('✅ Completed projects bridge seeded in `featured_projects`.');
 
     console.log('🎉 [CMS SEED] Finished successfully.');
   } catch (err) {
