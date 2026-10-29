@@ -21,8 +21,15 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    // Check if already booted in this session
-    if (typeof window !== 'undefined' && sessionStorage.getItem('technova_booted') === 'true') {
+    // Check if already booted in this session or if prefers-reduced-motion is requested
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (
+      typeof window !== 'undefined' &&
+      (sessionStorage.getItem('technova_booted') === 'true' || prefersReducedMotion)
+    ) {
       setBootDone(true);
       onCompleteRef.current();
       return;
@@ -117,6 +124,7 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
           containerRef.current,
           {
             backgroundColor: 'rgba(3,3,3,0)',
+            opacity: 0,
             duration: 0.45,
             ease: 'power2.out',
           },
@@ -132,50 +140,50 @@ export default function BootSequence({ onComplete }: BootSequenceProps) {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[9000] flex flex-col items-center justify-center bg-[#030303] pointer-events-none"
+      className="fixed inset-0 z-[9000] flex flex-col items-center justify-center bg-[#030303] pointer-events-none transition-opacity duration-300"
     >
       {/* Core Entity (Eyes + Architectural Robotic Head Wireframe) */}
       <div
         ref={entityRef}
         className="relative z-20 flex flex-col items-center justify-center"
       >
-        {/* Outer Robotic Wireframe Geometry */}
+        {/* Outer Robotic Wireframe Geometry - Dark Tech Green Palette */}
         <div
           ref={hudFrameRef}
-          className="relative w-36 h-36 border border-red-500/50 bg-[#070707]/90 flex items-center justify-center shadow-[0_0_50px_rgba(220,38,38,0.25)] hud-clip"
+          className="relative w-36 h-36 border border-[#00ff66]/50 bg-[#070707]/90 flex items-center justify-center shadow-[0_0_50px_rgba(0,255,102,0.22)] hud-clip"
         >
           {/* Architectural Wireframe Lines */}
           <div className="absolute inset-2 border border-white/10 pointer-events-none" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[1px] bg-red-500" />
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 font-mono text-[8px] tracking-[0.25em] text-red-500/70">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[1px] bg-[#00ff66]" />
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 font-mono text-[8px] tracking-[0.25em] text-[#00ff66]/80">
             NV-UNIT.01
           </div>
 
-          {/* The Two Glowing Cybernetic Eyes */}
+          {/* The Two Glowing Cybernetic Eyes (Dark Tech Green) */}
           <div className="flex items-center space-x-6">
             <div
               ref={leftEyeRef}
-              className="w-8 h-2 bg-red-500 shadow-[0_0_22px_#ef4444,0_0_8px_#ffffff] skew-x-[-14deg]"
+              className="w-8 h-2 bg-[#00ff66] shadow-[0_0_22px_#00ff66,0_0_8px_#ffffff] skew-x-[-14deg]"
             />
             <div
               ref={rightEyeRef}
-              className="w-8 h-2 bg-red-500 shadow-[0_0_22px_#ef4444,0_0_8px_#ffffff] skew-x-[14deg]"
+              className="w-8 h-2 bg-[#00ff66] shadow-[0_0_22px_#00ff66,0_0_8px_#ffffff] skew-x-[14deg]"
             />
           </div>
         </div>
       </div>
 
-      {/* Welcome Sequence Telemetry Text */}
+      {/* Welcome Sequence Telemetry Text (Dark Tech Green Accent) */}
       <div
         ref={textRef}
         className="fixed inset-0 z-10 flex flex-col items-center justify-center px-5 text-center"
       >
-        <p className="font-mono text-xs font-bold tracking-[0.55em] text-red-500 uppercase sm:text-sm">
+        <p className="font-mono text-xs font-bold tracking-[0.55em] text-[#00ff66] uppercase sm:text-sm">
           SYSTEM ONLINE // INITIALIZING
         </p>
         <p className="mt-4 text-5xl font-black leading-[0.9] tracking-tighter text-white uppercase sm:text-7xl lg:text-8xl xl:text-9xl">
           WELCOME TO
-          <span className="mt-2 block bg-gradient-to-r from-white via-red-200 to-red-500 bg-clip-text text-transparent">
+          <span className="mt-2 block bg-gradient-to-r from-white via-emerald-200 to-[#00ff66] bg-clip-text text-transparent">
             TECHNOVA STUDIO
           </span>
         </p>
