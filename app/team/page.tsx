@@ -145,9 +145,11 @@ export default function TeamDashboard() {
       case 'CMS':
         return (
           <CMSTab
+            currentUser={currentUser!}
             perms={perms}
             cms={cms}
             projects={projects}
+            members={members}
             onCMSChange={setCms}
             onProjectsChange={setProjects}
           />

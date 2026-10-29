@@ -280,6 +280,8 @@ export interface CMSSectionsPayload {
   ai_agent: AiAgentContent;
 }
 
+export type CMSDataDictionary = CMSSectionsPayload;
+
 // ─── PLATFORM SYSTEM MODELS ───────────────────────────────────────────────────
 
 export interface CMSSectionRecord<T = unknown> {
