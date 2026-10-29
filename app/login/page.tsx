@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  StudioMember, STORAGE_KEYS, getStore, setStore, initStore, SEED_MEMBERS,
+  StudioMember, STORAGE_KEYS, setStore, initStore,
 } from '@/lib/store';
 import { Shield, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
@@ -25,7 +25,6 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    // 1. Check MongoDB Cloud Database via /api/auth/login
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -41,33 +40,12 @@ export default function LoginPage() {
         return;
       }
 
-      // If credentials were explicitly rejected by MongoDB
-      if (res.status === 401) {
-        setError(result.error || 'ACCESS DENIED // INVALID CREDENTIALS OR CLEARANCE KEY');
-        setIsLoading(false);
-        return;
-      }
-    } catch (apiErr) {
-      // MongoDB endpoint not reachable, continue to local storage fallback
+      setError(result.error || 'ACCESS DENIED // INVALID CREDENTIALS OR CLEARANCE KEY');
+    } catch {
+      setError('AUTHENTICATION SERVICE UNAVAILABLE // PLEASE TRY AGAIN');
+    } finally {
+      setIsLoading(false);
     }
-
-    // 2. Fallback to LocalStorage store (if offline or database unconfigured)
-    setTimeout(() => {
-      const matched = getStore(STORAGE_KEYS.MEMBERS, SEED_MEMBERS).find(
-        (u) =>
-          u.email.toLowerCase() === email.trim().toLowerCase() &&
-          u.password === password
-      );
-
-      if (!matched) {
-        setError('ACCESS DENIED // INVALID CREDENTIALS OR CLEARANCE KEY');
-        setIsLoading(false);
-        return;
-      }
-
-      setStore(STORAGE_KEYS.ACTIVE_USER, matched);
-      router.push('/team');
-    }, 400);
   };
 
   return (

@@ -2,11 +2,28 @@
 // TECHNOVA STUDIO // WEBHOOK INGESTION ENGINE FOR AD INTEGRATIONS & EXTERNAL LEADS
 
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { StudioLead, LeadSource } from '@/lib/store';
 
 export async function POST(request: NextRequest) {
   try {
+    const webhookSecret = process.env.LEADS_WEBHOOK_SECRET;
+    if (process.env.NODE_ENV === 'production' && !webhookSecret) {
+      return NextResponse.json({ success: false, error: 'Webhook integration is not configured' }, { status: 503 });
+    }
+    if (webhookSecret) {
+      const providedSecret = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
+      const expected = Buffer.from(webhookSecret);
+      const provided = Buffer.from(providedSecret);
+      if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      }
+    }
+    if (!isMongoConfigured()) {
+      return NextResponse.json({ success: false, error: 'Webhook storage is not configured' }, { status: 503 });
+    }
+
     const rawBody = await request.json().catch(() => ({}));
 
     // Normalize incoming payload across various webhook standards (Zapier, Meta, Google, Webhook)
@@ -87,10 +104,8 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     };
 
-    if (isMongoConfigured()) {
-      const db = await getDb();
-      await db.collection(MONGO_COLLECTIONS.LEADS).insertOne(leadRecord as any);
-    }
+    const db = await getDb();
+    await db.collection(MONGO_COLLECTIONS.LEADS).insertOne(leadRecord as any);
 
     return NextResponse.json({
       success: true,
@@ -114,4 +129,3 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   });
 }
-

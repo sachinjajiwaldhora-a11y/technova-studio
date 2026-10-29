@@ -30,7 +30,7 @@ import {
   STORAGE_KEYS, getStore, SEED_CMS,
 } from '@/lib/store';
 import { CMSDataDictionary } from '@/lib/cms-types';
-import { CMS_SEED_DEFAULTS } from '@/lib/cms';
+import { CMS_SEED_DEFAULTS, CMS_STORAGE_KEYS } from '@/lib/cms';
 
 export default function HomePage() {
   const [bootCompleted, setBootCompleted] = useState(false);
@@ -42,6 +42,7 @@ export default function HomePage() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmsConfig, setCmsConfig] = useState<StudioCMSConfig>(SEED_CMS);
   const [cmsContent, setCmsContent] = useState<CMSDataDictionary>(CMS_SEED_DEFAULTS);
+  const [featuredBridgeProjects, setFeaturedBridgeProjects] = useState<CMSDataDictionary['featured_work']['projects']>([]);
 
   useEffect(() => {
     // 1. Hydrate CMS data from localStorage (or SEED fallback)
@@ -53,10 +54,21 @@ export default function HomePage() {
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (json && json.data) {
-          setCmsContent((prev) => ({ ...prev, ...json.data }));
+          const localPublished = json.fallback
+            ? getStore<Partial<CMSDataDictionary>>(CMS_STORAGE_KEYS.PUBLISHED, {})
+            : {};
+          setCmsContent((prev) => ({ ...prev, ...json.data, ...localPublished }));
         }
       })
       .catch((e) => console.error('Error fetching live CMS content:', e));
+
+    fetch('/api/cms/featured?public=true')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (!json?.success || json.fallback || !Array.isArray(json.projects)) return;
+        setFeaturedBridgeProjects(json.projects);
+      })
+      .catch((e) => console.error('Error fetching featured project bridge:', e));
 
     // 3. Check if already booted in this session
     if (typeof window !== 'undefined' && sessionStorage.getItem('technova_booted') === 'true') {
@@ -73,6 +85,28 @@ export default function HomePage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (featuredBridgeProjects.length === 0) return;
+    setCmsContent((previous) => {
+      const bridgeIds = new Set(
+        featuredBridgeProjects.map((project) => project.projectId).filter(Boolean)
+      );
+      const manualProjects = previous.featured_work.projects.filter(
+        (project) => !project.projectId || !bridgeIds.has(project.projectId)
+      );
+      const projects = [...manualProjects, ...featuredBridgeProjects].sort(
+        (a, b) => a.order - b.order
+      );
+      if (JSON.stringify(projects) === JSON.stringify(previous.featured_work.projects)) {
+        return previous;
+      }
+      return {
+        ...previous,
+        featured_work: { ...previous.featured_work, projects },
+      };
+    });
+  }, [featuredBridgeProjects, cmsContent]);
 
   const showcaseProjects: PortfolioShowcaseItem[] = cmsConfig?.portfolioShowcase?.length
     ? cmsConfig.portfolioShowcase

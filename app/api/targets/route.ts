@@ -4,9 +4,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { StudioTarget, DEFAULT_TARGETS } from '@/lib/store';
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: member ? 403 : 401 });
+    }
+
     if (!isMongoConfigured()) {
       return NextResponse.json({
         success: true,
@@ -87,6 +93,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: member ? 403 : 401 });
+    }
+
     const body = await request.json();
     const { targets } = body;
 
@@ -109,4 +120,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

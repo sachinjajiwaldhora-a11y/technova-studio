@@ -1099,7 +1099,7 @@ export function setStore<T>(key: string, value: T): void {
 }
 
 export function initStore(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') return;
 
   // Deduplicate and ensure clean members roster
   const currentMembers = getStore<StudioMember[]>(STORAGE_KEYS.MEMBERS, []);

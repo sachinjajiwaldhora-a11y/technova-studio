@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { FeaturedProjectBridge, FeaturedProjectItem } from '@/lib/cms-types';
 import { StudioProject } from '@/lib/store';
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 // ─── GET: Fetch completed projects and their featured bridge mappings ─────────
 export async function GET(request: NextRequest) {
@@ -89,10 +90,9 @@ export async function GET(request: NextRequest) {
 // ─── POST: Update featured bridge status & public overrides ──────────────────
 export async function POST(request: NextRequest) {
   try {
-    const authorRole = request.headers.get('x-author-role');
-    const authorId = request.headers.get('x-author-id');
-    if (authorRole !== 'admin' && authorRole !== 'manager' && !authorId?.includes('admin')) {
-      return NextResponse.json({ success: false, error: 'UNAUTHORIZED // CLEARANCE REQUIRED' }, { status: 403 });
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const body = (await request.json()) as FeaturedProjectBridge;
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
     await db.collection(MONGO_COLLECTIONS.CMS_AUDIT_LOG).insertOne({
       id: `aud-${Date.now().toString(36)}`,
       timestamp: new Date().toISOString(),
-      authorId: authorId || 'admin',
-      authorName: request.headers.get('x-author-name') || 'Admin',
+      authorId: member.id,
+      authorName: member.name,
       action: 'TOGGLE_FEATURED',
       sectionKey: 'projects',
       summary: `Updated featured status for project ${body.projectId} (Featured: ${body.isFeatured}, Visible: ${body.publicVisibility})`,
@@ -144,4 +144,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

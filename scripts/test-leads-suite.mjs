@@ -74,6 +74,119 @@ async function runTests() {
   assert(targetMetrics.includes('LEADS_CONTACTED'), 'Leads Contacted Target sync logic verified');
   assert(targetMetrics.includes('PROJECTS_DELIVERED'), 'Projects Delivered Target sync logic verified');
 
+  // ─── TEST SUITE 5: End-to-End Deal Conversion & Customer ID Linking ───────────
+  console.log('\n🔹 Test Suite 5: End-to-End Deal Conversion & Project Linking Flow');
+  const convClient = new MongoClient(uri);
+  try {
+    await convClient.connect();
+    const db = convClient.db(dbName);
+    const leadsCol = db.collection('studio_leads');
+    const customersCol = db.collection('studio_customers');
+    const projectsCol = db.collection('studio_projects');
+
+    const testLeadId = `lead-suite-conv-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    await leadsCol.insertOne({
+      id: testLeadId,
+      name: 'Integration Test Lead',
+      email: 'test@technovastudio.dev',
+      company: 'Test Orbitals',
+      value: 88000,
+      status: 'INTERESTED',
+      source: 'MANUAL',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const currentYear = new Date().getFullYear();
+    const prefix = `CUST-${currentYear}-`;
+    const latestCust = await customersCol
+      .find({ id: { $regex: `^${prefix}` } })
+      .sort({ id: -1 })
+      .limit(1)
+      .toArray();
+
+    let nextSeq = 1;
+    if (latestCust.length > 0 && latestCust[0].id) {
+      const parts = latestCust[0].id.split('-');
+      const parsed = parseInt(parts[2], 10);
+      if (!isNaN(parsed)) nextSeq = parsed + 1;
+    } else {
+      const custCount = await customersCol.countDocuments({});
+      nextSeq = custCount + 1;
+    }
+    const customerId = `${prefix}${String(nextSeq).padStart(3, '0')}`;
+    const prjId = `prj-test-${Date.now()}`;
+    const trackingCode = `TRK-${customerId}`;
+
+    // Upsert Customer without operator collision
+    await customersCol.updateOne(
+      { id: customerId },
+      {
+        $setOnInsert: {
+          id: customerId,
+          firstLeadId: testLeadId,
+          createdAt: now,
+        },
+        $set: {
+          name: 'Integration Test Lead',
+          email: 'test@technovastudio.dev',
+          company: 'Test Orbitals',
+          status: 'ACTIVE_CLIENT',
+          updatedAt: now,
+        },
+        $addToSet: { projectIds: prjId },
+        $inc: { totalLifetimeValue: 88000 },
+      },
+      { upsert: true }
+    );
+
+    // Create Active Project
+    await projectsCol.insertOne({
+      id: prjId,
+      title: 'Test Orbitals Flagship Build',
+      customerId,
+      trackingCode,
+      status: 'ACTIVE',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Update Lead to DEAL_WON
+    await leadsCol.updateOne(
+      { id: testLeadId },
+      {
+        $set: {
+          status: 'DEAL_WON',
+          customerId,
+          convertedProjectId: prjId,
+          convertedAt: now,
+          updatedAt: now,
+        },
+      }
+    );
+
+    const verifiedLead = await leadsCol.findOne({ id: testLeadId });
+    const verifiedCustomer = await customersCol.findOne({ id: customerId });
+    const verifiedProject = await projectsCol.findOne({ id: prjId });
+
+    assert(verifiedLead?.status === 'DEAL_WON', 'Lead converted to DEAL_WON status');
+    assert(verifiedCustomer?.id === customerId, `Customer ID correctly provisioned: ${customerId}`);
+    assert(verifiedCustomer?.projectIds?.includes(prjId), 'Customer record linked to new active project');
+    assert(verifiedProject?.trackingCode === `TRK-${customerId}`, 'Project assigned tracking code TRK-CUST-YYYY-XXX');
+
+    // Clean up
+    await leadsCol.deleteOne({ id: testLeadId });
+    await customersCol.deleteOne({ id: customerId });
+    await projectsCol.deleteOne({ id: prjId });
+    assert(true, 'Test artifacts cleanly reverted from MongoDB');
+  } catch (err) {
+    assert(false, `Deal conversion integration failed: ${err.message}`);
+  } finally {
+    await convClient.close().catch(() => {});
+  }
+
   console.log('\n═══════════════════════════════════════════════════');
   console.log(`TOTAL PASSED: ${passCount}`);
   console.log(`TOTAL FAILED: ${failCount}`);

@@ -2,7 +2,7 @@
 // TECHNOVA STUDIO // OVERVIEW DASHBOARD & TARGET TRACKING TELEMETRY
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StudioMember, StudioProject, ClientInquiry, StudioAnnouncement,
   StudioLead, StudioTarget, DEFAULT_TARGETS, STORAGE_KEYS, setStore,
@@ -10,8 +10,7 @@ import {
 } from '@/lib/store';
 import {
   Briefcase, TrendingUp, Users, Clock, CheckCircle2, AlertTriangle,
-  Megaphone, ArrowUpRight, Zap, Target, Edit3, X, Check, Plus,
-  Sparkles, DollarSign, Award,
+  Megaphone, ArrowUpRight, Zap, Target, Edit3, X,
 } from 'lucide-react';
 
 interface OverviewTabProps {
@@ -40,42 +39,52 @@ export default function OverviewTab({
   onTabChange,
 }: OverviewTabProps) {
   const [configureTargetsOpen, setConfigureTargetsOpen] = useState(false);
-  const [editableTargets, setEditableTargets] = useState<StudioTarget[]>(targets);
+  const safeTargets = useMemo(
+    () => (Array.isArray(targets) && targets.length > 0 ? targets : DEFAULT_TARGETS).filter(Boolean),
+    [targets]
+  );
+  const [editableTargets, setEditableTargets] = useState<StudioTarget[]>(safeTargets);
 
-  const myProjects = projects.filter((p) =>
-    perms.canViewAllProjects
+  const safeProjects = useMemo(() => (Array.isArray(projects) ? projects : []).filter(Boolean), [projects]);
+  const safeInquiries = useMemo(() => (Array.isArray(inquiries) ? inquiries : []).filter(Boolean), [inquiries]);
+  const safeAnnouncements = useMemo(() => (Array.isArray(announcements) ? announcements : []).filter(Boolean), [announcements]);
+  const safeLeads = useMemo(() => (Array.isArray(leads) ? leads : []).filter(Boolean), [leads]);
+
+  const currentUserId = currentUser?.id || '';
+  const myProjects = safeProjects.filter((p) =>
+    perms?.canViewAllProjects
       ? true
-      : p.assignedMemberIds.includes(currentUser.id) || p.managerId === currentUser.id
+      : (p?.assignedMemberIds || []).includes(currentUserId) || p?.managerId === currentUserId
   );
 
-  const activeProjects = myProjects.filter((p) => p.status === 'ACTIVE');
-  const completedProjects = myProjects.filter((p) => p.status === 'COMPLETED');
-  const criticalProjects = myProjects.filter((p) => p.priority === 'CRITICAL' && p.status === 'ACTIVE');
-  const newInquiries = inquiries.filter((i) => i.status === 'NEW_INQUIRY');
+  const activeProjects = myProjects.filter((p) => p?.status === 'ACTIVE');
+  const completedProjects = myProjects.filter((p) => p?.status === 'COMPLETED');
+  const criticalProjects = myProjects.filter((p) => p?.priority === 'CRITICAL' && p?.status === 'ACTIVE');
+  const newInquiries = safeInquiries.filter((i) => i?.status === 'NEW_INQUIRY');
 
   // Revenue pipeline: Won leads + open inquiries expected revenue
-  const wonLeadsRev = leads
-    .filter((l) => l.status === 'DEAL_WON')
-    .reduce((sum, l) => sum + (l.value || 0), 0);
-  const inqRev = inquiries.reduce((sum, i) => sum + i.expectedRevenue, 0);
+  const wonLeadsRev = safeLeads
+    .filter((l) => l?.status === 'DEAL_WON')
+    .reduce((sum, l) => sum + (Number(l?.value) || 0), 0);
+  const inqRev = safeInquiries.reduce((sum, i) => sum + (Number(i?.expectedRevenue) || 0), 0);
   const totalRevenuePipeline = wonLeadsRev + inqRev;
 
   // Deals won count
   const dealsWonCount =
-    leads.filter((l) => l.status === 'DEAL_WON').length +
-    inquiries.filter((i) => i.status === 'LOCKED_DEAL').length;
+    safeLeads.filter((l) => l?.status === 'DEAL_WON').length +
+    safeInquiries.filter((i) => i?.status === 'LOCKED_DEAL').length;
 
   // Leads contacted count
-  const leadsContactedCount = leads.filter(
-    (l) => l.status === 'CONTACTED' || l.status === 'FOLLOW_UP' || l.status === 'INTERESTED' || l.status === 'DEAL_WON'
+  const leadsContactedCount = safeLeads.filter(
+    (l) => l?.status === 'CONTACTED' || l?.status === 'FOLLOW_UP' || l?.status === 'INTERESTED' || l?.status === 'DEAL_WON'
   ).length;
 
   const myMilestones = myProjects.flatMap((p) =>
-    p.milestones.map((m) => ({ ...m, projectTitle: p.title, projectId: p.id }))
+    (p?.milestones || []).map((m) => ({ ...m, projectTitle: p?.title || 'Build', projectId: p?.id || '' }))
   );
-  const pendingMilestones = myMilestones.filter((m) => !m.completed);
+  const pendingMilestones = myMilestones.filter((m) => !m?.completed);
 
-  const unread = announcements.filter((a) => !a.readBy.includes(currentUser.id));
+  const unread = safeAnnouncements.filter((a) => !(a?.readBy || []).includes(currentUserId));
 
   // Compute live value for each target
   const getLiveMetricValue = (metric: StudioTarget['metric']) => {
@@ -143,12 +152,12 @@ export default function OverviewTab({
       bg: 'bg-emerald-950/20',
       tab: 'PROJECTS',
     },
-    ...(perms.canViewLeads
+    ...(perms?.canViewLeads
       ? [
           {
             label: 'LEADS PIPELINE',
-            value: leads.filter((l) => l.status !== 'LOST').length.toString(),
-            sub: `${leads.filter((l) => l.status === 'NEW').length} new inbounds`,
+            value: safeLeads.filter((l) => l?.status !== 'LOST').length.toString(),
+            sub: `${safeLeads.filter((l) => l?.status === 'NEW').length} new inbounds`,
             icon: Users,
             color: 'text-cyan-400',
             border: 'border-cyan-500/30',
@@ -157,7 +166,7 @@ export default function OverviewTab({
           },
         ]
       : []),
-    ...(perms.canViewAllInquiries
+    ...(perms?.canViewAllInquiries
       ? [
           {
             label: 'NEW INQUIRIES',
@@ -171,7 +180,7 @@ export default function OverviewTab({
           },
         ]
       : []),
-    ...(perms.canViewRevenueMetrics
+    ...(perms?.canViewRevenueMetrics
       ? [
           {
             label: 'REVENUE PIPELINE',
@@ -197,11 +206,11 @@ export default function OverviewTab({
         <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight uppercase">
           WELCOME BACK,{' '}
           <span className="bg-gradient-to-r from-white to-red-400 bg-clip-text text-transparent">
-            {currentUser.name.split(' ')[0]}
+            {(currentUser?.name || 'OPERATIVE').split(' ')[0]}
           </span>
         </h1>
         <p className="mt-1 text-sm text-zinc-400 font-mono">
-          {currentUser.clearanceCode} // {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long' })}
+          {currentUser?.clearanceCode || 'LVL-05'} // {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long' })}
         </p>
       </div>
 
@@ -241,11 +250,11 @@ export default function OverviewTab({
               </p>
             </div>
           </div>
-          {perms.canManageTargets && (
+          {perms?.canManageTargets && (
             <button
               type="button"
               onClick={() => {
-                setEditableTargets(targets);
+                setEditableTargets(safeTargets);
                 setConfigureTargetsOpen(true);
               }}
               className="px-3 py-1.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider border border-white/10 bg-white/5 hover:border-red-500/50 text-white flex items-center gap-1.5 transition-all self-start sm:self-auto"
@@ -257,7 +266,7 @@ export default function OverviewTab({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {targets.map((tgt) => {
+          {safeTargets.map((tgt) => {
             const liveCurrent = getLiveMetricValue(tgt.metric);
             const targetVal = tgt.targetValue || 1;
             const pct = Math.min(100, Math.round((liveCurrent / targetVal) * 100));
@@ -276,7 +285,7 @@ export default function OverviewTab({
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[9px] uppercase tracking-wider text-zinc-400 font-bold">
-                      {tgt.period} TARGET
+                      {tgt.period || 'MONTHLY'} TARGET
                     </span>
                     <span
                       className={`font-mono text-[9px] px-1.5 py-0.5 rounded font-bold ${
@@ -339,8 +348,8 @@ export default function OverviewTab({
           <div className="space-y-3">
             {activeProjects.slice(0, 5).map((p) => {
               const pct = getProjectProgress(p);
-              const doneMilestones = p.milestones.filter((m) => m.completed).length;
-              const totalMilestones = p.milestones.length;
+              const doneMilestones = (p.milestones || []).filter((m) => m?.completed).length;
+              const totalMilestones = (p.milestones || []).length;
               return (
                 <div
                   key={p.id}
@@ -350,9 +359,9 @@ export default function OverviewTab({
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-mono text-[9px] text-zinc-500">[{p.id.toUpperCase()}]</span>
+                        <span className="font-mono text-[9px] text-zinc-500">[{(p.id || '').toUpperCase()}]</span>
                         <h4 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">
-                          {p.title}
+                          {p.title || 'Untitled Project'}
                         </h4>
                         {p.priority === 'CRITICAL' && (
                           <span className="font-mono text-[8px] bg-red-950/80 border border-red-500/60 text-red-400 px-1.5 py-0.2">
@@ -365,10 +374,10 @@ export default function OverviewTab({
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-zinc-400 line-clamp-1">{p.description}</p>
+                      <p className="mt-1 text-xs text-zinc-400 line-clamp-1">{p.description || ''}</p>
                     </div>
                     <span className="font-mono text-[10px] text-zinc-500 shrink-0 ml-3">
-                      {p.type.replace('_', ' ')}
+                      {(p.type || '').replace('_', ' ')}
                     </span>
                   </div>
 
@@ -421,8 +430,8 @@ export default function OverviewTab({
             </button>
           </div>
           <div className="space-y-3">
-            {announcements.slice(0, 4).map((ann) => {
-              const isUnread = !ann.readBy.includes(currentUser.id);
+            {safeAnnouncements.slice(0, 4).map((ann) => {
+              const isUnread = !(ann.readBy || []).includes(currentUserId);
               const catColors: Record<string, string> = {
                 IMPORTANT: 'text-red-400 border-red-500/50',
                 MEETING: 'text-violet-400 border-violet-500/50',
@@ -435,18 +444,18 @@ export default function OverviewTab({
                   className={`border ${isUnread ? 'border-red-500/30 bg-red-950/10' : 'border-white/8 bg-white/[0.02]'} p-3.5`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`font-mono text-[8px] border px-1.5 py-0.5 uppercase ${catColors[ann.category]}`}>
+                    <span className={`font-mono text-[8px] border px-1.5 py-0.5 uppercase ${catColors[ann.category] || catColors.GENERAL}`}>
                       {ann.category}
                     </span>
                     {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
                     {ann.pinned && !isUnread && <AlertTriangle className="w-3 h-3 text-amber-500" />}
                   </div>
                   <p className="mt-1.5 text-xs font-semibold text-white">{ann.title}</p>
-                  <p className="mt-0.5 font-mono text-[9px] text-zinc-500">by {ann.authorName}</p>
+                  <p className="mt-0.5 font-mono text-[9px] text-zinc-500">by {ann.authorName || 'Studio Leadership'}</p>
                 </div>
               );
             })}
-            {announcements.length === 0 && (
+            {safeAnnouncements.length === 0 && (
               <p className="text-xs text-zinc-500 font-mono text-center py-6">NO ANNOUNCEMENTS</p>
             )}
           </div>
@@ -465,7 +474,7 @@ export default function OverviewTab({
         <div className="fixed inset-0 z-[9600] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
           <div className="w-full max-w-lg rounded border border-white/10 bg-[#141416] p-6 shadow-2xl space-y-4 font-mono text-xs">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center space-x-2">
                 <Target className="w-4 h-4 text-red-500" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-white">
                   CONFIGURE STUDIO VELOCITY TARGETS
@@ -481,7 +490,7 @@ export default function OverviewTab({
             </div>
 
             <form onSubmit={handleSaveTargets} className="space-y-4">
-              {editableTargets.map((tgt, idx) => (
+              {(Array.isArray(editableTargets) ? editableTargets : []).map((tgt, idx) => (
                 <div key={tgt.id} className="p-3 rounded border border-white/8 bg-black/40 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-white text-[11px] uppercase">{tgt.title}</span>
@@ -491,7 +500,7 @@ export default function OverviewTab({
                     <span className="text-zinc-400">{tgt.unit === '$' ? '$' : 'Goal:'}</span>
                     <input
                       type="number"
-                      value={tgt.targetValue}
+                      value={tgt.targetValue || 0}
                       onChange={(e) => {
                         const next = [...editableTargets];
                         next[idx].targetValue = parseInt(e.target.value) || 0;

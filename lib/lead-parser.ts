@@ -2,7 +2,7 @@
 // TECHNOVA STUDIO // LEAD FILE PARSER & AUTO-MAPPING ENGINE (CSV, EXCEL, PDF)
 
 import * as XLSX from 'xlsx';
-import { StudioLead, LeadStatus, LeadSource } from '@/lib/store';
+import { DEFAULT_LEAD_COLUMNS, LeadColumn, StudioLead, LeadStatus, LeadSource } from '@/lib/store';
 
 export interface ParsedLeadResult {
   leads: Partial<StudioLead>[];
@@ -173,7 +173,11 @@ export function parseSpreadsheetBuffer(buffer: Buffer, filename: string): Parsed
 }
 
 // ─── PARSE PDF TEXT & STRUCTURED RECORDS ──────────────────────────────────────
-export function parsePdfTextContent(fullText: string, filename: string): ParsedLeadResult {
+export function parsePdfTextContent(
+  fullText: string,
+  filename: string,
+  columns: LeadColumn[] = DEFAULT_LEAD_COLUMNS
+): ParsedLeadResult {
   const warnings: string[] = [];
   const leads: Partial<StudioLead>[] = [];
 
@@ -181,15 +185,23 @@ export function parsePdfTextContent(fullText: string, filename: string): ParsedL
     return { leads: [], totalParsed: 0, detectedType: 'pdf', warnings: ['No extractable text found in PDF'] };
   }
 
-  const rawLines = fullText.split(/\r?\n/).map((l) => l.trim());
+  const normalizedText = fullText
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(
+      /([^\n])\s+(?=(?:Record\s+\d+|Lead\s+\d+|Full\s*Name|Contact(?:\s*Name)?|Name|E-?mail(?:\s*Address)?|Phone|Mobile|Telephone|Company|Organization|Business|Value|Budget|Status|Stage|Source|Notes?)\s*[:=-])/gi,
+      '$1\n'
+    );
+  const rawLines = normalizedText.split('\n').map((l) => l.trim()).filter(Boolean);
 
   // 1. Check if the PDF has a tabular / delimited layout (e.g. pipe '|' or tab '\t' or comma separated)
   const pipeLines = rawLines.filter((l) => l.includes('|'));
   const tabLines = rawLines.filter((l) => l.includes('\t'));
+  const tableLines = pipeLines.length >= 2 ? pipeLines : tabLines;
 
-  if (pipeLines.length >= 2) {
-    // Pipe-delimited table structure
-    const headers = pipeLines[0].split('|').map((h) => h.trim().toLowerCase());
+  if (tableLines.length >= 2) {
+    const delimiter = pipeLines.length >= 2 ? '|' : '\t';
+    const headers = tableLines[0].split(delimiter).map((h) => h.trim().toLowerCase());
     const nameIdx = headers.findIndex((h) => /name|contact/i.test(h));
     const emailIdx = headers.findIndex((h) => /email|mail/i.test(h));
     const phoneIdx = headers.findIndex((h) => /phone|tel|mobile/i.test(h));
@@ -197,8 +209,8 @@ export function parsePdfTextContent(fullText: string, filename: string): ParsedL
     const valIdx = headers.findIndex((h) => /val|amount|budget/i.test(h));
     const statIdx = headers.findIndex((h) => /status|stage/i.test(h));
 
-    for (let i = 1; i < pipeLines.length; i++) {
-      const parts = pipeLines[i].split('|').map((p) => p.trim());
+    for (let i = 1; i < tableLines.length; i++) {
+      const parts = tableLines[i].split(delimiter).map((p) => p.trim());
       if (parts.length < 2) continue;
       const email = emailIdx !== -1 && parts[emailIdx] ? parts[emailIdx] : '';
       const name = nameIdx !== -1 && parts[nameIdx] ? parts[nameIdx] : '';
@@ -224,7 +236,12 @@ export function parsePdfTextContent(fullText: string, filename: string): ParsedL
 
   // 2. Check for labeled key-value dossier blocks
   // Record delimiters: ---, ===, or blocks separated by multiple newlines
-  const textBlocks = fullText.split(/(?:---+|===+|\*{3,}|\bRecord\s+\d+:?|\bLead\s+\d+:?)/i);
+  const textBlocks = normalizedText.split(
+    /(?:---+|===+|\*{3,}|(?:^|\n)[ \t]*(?:Record|Lead)\s+\d+:?[ \t]*(?:\n|$)|\n(?=\s*(?:Full\s*Name|Contact(?:\s*Name)?|Name)\s*[:=-]))/i
+  );
+  const customColumns = columns.filter(
+    (column) => !['name', 'email', 'phone', 'company', 'value', 'status', 'source', 'notes'].includes(column.id)
+  );
 
   for (const block of textBlocks) {
     const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -237,9 +254,20 @@ export function parsePdfTextContent(fullText: string, filename: string): ParsedL
     let value = 0;
     let status: LeadStatus = 'NEW';
     let notes = '';
+    let source: LeadSource = 'MANUAL';
+    const fieldValues: Record<string, string> = {};
     const customFields: Record<string, any> = {};
 
     for (const line of lines) {
+      const customColumn = customColumns.find(
+        (column) => column.label.trim() && new RegExp(`^${column.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[:=-]\\s*(.+)$`, 'i').test(line)
+      );
+      if (customColumn) {
+        const match = line.match(new RegExp(`^${customColumn.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*[:=-]\\s*(.+)$`, 'i'));
+        if (match) customFields[customColumn.id] = match[1].trim();
+        continue;
+      }
+
       const nameMatch = line.match(/^(?:name|full\s*name|contact(?:\s*name)?|lead(?:\s*name)?)\s*[:=-]\s*(.+)/i);
       if (nameMatch) {
         name = nameMatch[1].trim();
@@ -282,11 +310,16 @@ export function parsePdfTextContent(fullText: string, filename: string): ParsedL
         continue;
       }
 
-      // Check for custom key: value
-      const kvMatch = line.match(/^([a-zA-Z0-9_\s]{2,20})\s*[:=]\s*(.+)/);
-      if (kvMatch && !nameMatch && !emailMatch) {
-        const customKey = kvMatch[1].trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
-        customFields[customKey] = kvMatch[2].trim();
+      const sourceMatch = line.match(/^(?:lead\s*)?source\s*[:=-]\s*(.+)/i);
+      if (sourceMatch) {
+        source = normalizeLeadSource(sourceMatch[1]);
+        continue;
+      }
+
+      const fieldMatch = line.match(/^([a-zA-Z0-9_\s-]{2,40})\s*[:=]\s*(.+)/);
+      if (fieldMatch) {
+        const key = fieldMatch[1].trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+        fieldValues[key] = fieldMatch[2].trim();
       }
     }
 
@@ -310,48 +343,67 @@ export function parsePdfTextContent(fullText: string, filename: string): ParsedL
         company,
         value,
         status,
-        source: 'MANUAL',
+        source,
         sourceDetails: `Imported from PDF dossier in ${filename}`,
         notes,
-        customFields,
+        customFields: { ...fieldValues, ...customFields },
       });
     }
   }
 
   // 3. If no leads were identified via key-value blocks, fallback to searching raw emails
-  if (leads.length === 0) {
+  {
     const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
-    const matches = Array.from(fullText.matchAll(emailRegex));
+    const matches = Array.from(normalizedText.matchAll(emailRegex));
 
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i];
       const email = match[0];
+      if (leads.some((lead) => lead.email?.toLowerCase() === email.toLowerCase())) continue;
       const matchIndex = match.index || 0;
 
-      // Extract window around the email match
-      const windowStart = Math.max(0, matchIndex - 120);
-      const windowEnd = Math.min(fullText.length, matchIndex + 160);
-      const windowText = fullText.slice(windowStart, windowEnd);
+      const previousEmailEnd = i > 0 ? (matches[i - 1].index || 0) + matches[i - 1][0].length : 0;
+      const nextEmailStart = i + 1 < matches.length ? (matches[i + 1].index || normalizedText.length) : normalizedText.length;
+      const recordStart = Math.max(previousEmailEnd, normalizedText.lastIndexOf('\n\n', matchIndex) + 2);
+      const windowText = normalizedText.slice(recordStart, nextEmailStart || normalizedText.length);
       const windowLines = windowText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
-      const emailLineIdx = windowLines.findIndex((l) => l.includes(email));
-      const nameCandidate = emailLineIdx > 0 ? windowLines[emailLineIdx - 1] : email.split('@')[0];
+      const fields = new Map<string, string>();
+      for (const line of windowLines) {
+        const field = line.match(/^([a-zA-Z][a-zA-Z0-9 _-]{1,39})\s*[:=-]\s*(.+)$/);
+        if (field) fields.set(field[1].trim().toLowerCase(), field[2].trim());
+      }
+      const nameCandidate = fields.get('name') || fields.get('full name') || fields.get('contact name');
+      const phoneCandidate = fields.get('phone') || fields.get('mobile') || fields.get('telephone');
+      const companyCandidate = fields.get('company') || fields.get('organization') || fields.get('business');
 
       leads.push({
-        name: nameCandidate && nameCandidate.length < 40 ? nameCandidate : email.split('@')[0],
+        name: nameCandidate && nameCandidate.length < 100 ? nameCandidate : email.split('@')[0],
         email,
+        phone: phoneCandidate,
+        company: companyCandidate,
         source: 'MANUAL',
         sourceDetails: `Imported from PDF freeform text in ${filename}`,
         status: 'NEW',
-        value: 0,
-        customFields: {},
+        value: cleanLeadValue(fields.get('value') || fields.get('budget') || ''),
+        notes: fields.get('notes') || fields.get('description') || '',
+        customFields: Object.fromEntries(
+          customColumns
+            .map((column) => [column.id, fields.get(column.label.toLowerCase())])
+            .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+        ),
       });
     }
   }
 
+  const uniqueLeads = leads.filter((lead, index, list) => {
+    const email = lead.email?.trim().toLowerCase();
+    return !email || list.findIndex((candidate) => candidate.email?.trim().toLowerCase() === email) === index;
+  });
+
   return {
-    leads,
-    totalParsed: leads.length,
+    leads: uniqueLeads,
+    totalParsed: uniqueLeads.length,
     detectedType: 'pdf',
     warnings,
   };
@@ -361,7 +413,8 @@ export function parsePdfTextContent(fullText: string, filename: string): ParsedL
 export async function parseUploadedLeadFile(
   buffer: Buffer,
   filename: string,
-  mimeType?: string
+  mimeType?: string,
+  columns: LeadColumn[] = DEFAULT_LEAD_COLUMNS
 ): Promise<ParsedLeadResult> {
   const lowerName = filename.toLowerCase();
 
@@ -379,12 +432,13 @@ export async function parseUploadedLeadFile(
 
   // PDF file
   if (lowerName.endsWith('.pdf') || mimeType?.includes('pdf')) {
+    let parser: import('pdf-parse').PDFParse | undefined;
     try {
       const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: buffer });
+      parser = new PDFParse({ data: buffer });
       const parsedDoc = await parser.getText();
       const extractedText = parsedDoc && typeof parsedDoc.text === 'string' ? parsedDoc.text : '';
-      return parsePdfTextContent(extractedText, filename);
+      return parsePdfTextContent(extractedText, filename, columns);
     } catch (pdfErr: any) {
       return {
         leads: [],
@@ -392,6 +446,8 @@ export async function parseUploadedLeadFile(
         detectedType: 'pdf',
         warnings: [`PDF text extraction failed: ${pdfErr?.message || String(pdfErr)}`],
       };
+    } finally {
+      await parser?.destroy();
     }
   }
 

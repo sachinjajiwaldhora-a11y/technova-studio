@@ -4,18 +4,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { StudioLead, SEED_LEADS, DEFAULT_LEAD_COLUMNS } from '@/lib/store';
-
-// Helper: Verify authorization
-function verifyAuth(request: NextRequest) {
-  const authorRole = request.headers.get('x-author-role') || 'member';
-  const authorId = request.headers.get('x-author-id') || '';
-  const isAdminOrManager = authorRole === 'admin' || authorRole === 'manager' || authorId.includes('admin') || authorId.includes('usr-01');
-  return { isAuthorized: true, isAdminOrManager, authorId, authorRole };
-}
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 // ─── GET: Fetch Leads & Custom Columns ────────────────────────────────────────
 export async function GET(request: NextRequest) {
   try {
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: member ? 403 : 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const assignedTo = searchParams.get('assignedTo');
@@ -65,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      leads: leads.length > 0 ? leads : SEED_LEADS,
+      leads,
       columns,
     });
   } catch (error: any) {
@@ -76,10 +74,13 @@ export async function GET(request: NextRequest) {
 // ─── POST: Create or Update Lead ──────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
-    const { authorId } = verifyAuth(request);
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: member ? 403 : 401 });
+    }
     const body = await request.json();
 
-    if (!body.name || !body.email) {
+    if (typeof body.name !== 'string' || typeof body.email !== 'string' || !body.name.trim() || !body.email.trim()) {
       return NextResponse.json({ success: false, error: 'Name and email are required for leads' }, { status: 400 });
     }
 
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
       status: body.status || 'NEW',
       source: body.source || 'MANUAL',
       sourceDetails: body.sourceDetails || 'Direct Studio Lead Creation',
-      assignedMemberId: body.assignedMemberId || authorId || '',
+      assignedMemberId: body.assignedMemberId || member.id,
       assignedMemberName: body.assignedMemberName || '',
       customerId: body.customerId || '',
       convertedProjectId: body.convertedProjectId || '',
@@ -125,6 +126,11 @@ export async function POST(request: NextRequest) {
 // ─── DELETE: Remove a lead ────────────────────────────────────────────────────
 export async function DELETE(request: NextRequest) {
   try {
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: member ? 403 : 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -144,4 +150,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

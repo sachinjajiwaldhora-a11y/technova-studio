@@ -80,7 +80,7 @@ export default function ProjectsTab({
   const visibleProjects = projects.filter((p) => {
     const canSee = perms.canViewAllProjects
       ? true
-      : p.assignedMemberIds.includes(currentUser.id) || p.managerId === currentUser.id || p.createdBy === currentUser.id;
+      : (p.assignedMemberIds || []).includes(currentUser.id) || p.managerId === currentUser.id || p.createdBy === currentUser.id;
     if (!canSee) return false;
     if (sourceCategory === 'CLIENT' && p.source !== 'CLIENT_INQUIRY') return false;
     if (sourceCategory === 'TEAM' && p.source !== 'INTERNAL_TEAM') return false;
@@ -169,8 +169,8 @@ export default function ProjectsTab({
           ...p,
           status: next,
           milestones: isFinished
-            ? p.milestones.map((m) => ({ ...m, completed: true }))
-            : p.milestones,
+            ? (p.milestones || []).map((m) => ({ ...m, completed: true }))
+            : p.milestones || [],
           updatedAt: new Date().toISOString(),
         };
       }
@@ -185,7 +185,7 @@ export default function ProjectsTab({
       if (p.id === projectId) {
         return {
           ...p,
-          milestones: p.milestones.map((m) =>
+          milestones: (p.milestones || []).map((m) =>
             m.id === msId ? { ...m, completed: !m.completed } : m
           ),
         };
@@ -201,7 +201,7 @@ export default function ProjectsTab({
     if (!text) return;
     const ms: Milestone = { id: `ms-${Date.now()}`, title: text, completed: false, createdAt: new Date().toISOString() };
     const updated = projects.map((p) =>
-      p.id === projectId ? { ...p, milestones: [...p.milestones, ms] } : p
+      p.id === projectId ? { ...p, milestones: [...(p.milestones || []), ms] } : p
     );
     saveAndUpdate(updated);
     setMilestoneInputs((prev) => ({ ...prev, [projectId]: '' }));
@@ -358,12 +358,12 @@ export default function ProjectsTab({
                     type="button"
                     onClick={() => setForm((prev) => ({
                       ...prev,
-                      assignedMemberIds: prev.assignedMemberIds.includes(m.id)
+                      assignedMemberIds: (prev.assignedMemberIds || []).includes(m.id)
                         ? prev.assignedMemberIds.filter((id) => id !== m.id)
                         : [...prev.assignedMemberIds, m.id],
                     }))}
                     className={`px-2.5 py-1.5 font-mono text-[9px] border transition-colors ${
-                      form.assignedMemberIds.includes(m.id)
+                      (form.assignedMemberIds || []).includes(m.id)
                         ? 'border-red-500 bg-red-600/20 text-white'
                         : 'border-white/15 text-zinc-400 hover:border-white/40'
                     }`}
@@ -450,9 +450,10 @@ export default function ProjectsTab({
         {visibleProjects.map((project) => {
           const isExpanded = expandedId === project.id;
           const pct = getProjectProgress(project);
-          const doneMilestones = project.milestones.filter((m) => m.completed).length;
+          const milestones = project.milestones || [];
+          const doneMilestones = milestones.filter((m) => m.completed).length;
           const TypeIcon = TYPE_ICONS[project.type] || Layout;
-          const assignedMembers = members.filter((m) => project.assignedMemberIds.includes(m.id));
+          const assignedMembers = members.filter((m) => (project.assignedMemberIds || []).includes(m.id));
 
           return (
             <div key={project.id} className="border border-white/10 bg-[#060606] hud-clip overflow-hidden">
@@ -620,7 +621,7 @@ export default function ProjectsTab({
                   <div>
                     <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-3">MILESTONES</p>
                     <div className="space-y-1.5">
-                      {project.milestones.map((ms) => (
+                      {(project.milestones || []).map((ms) => (
                         <button
                           key={ms.id}
                           onClick={() => toggleMilestone(project.id, ms.id)}

@@ -14,6 +14,7 @@ import {
   DEFAULT_ROLE_PERMISSIONS,
 } from '@/lib/store';
 import { getPermissions } from '@/lib/rbac';
+import { deleteFromMongo, fetchFromMongo, saveToMongo } from '@/lib/mongodb-client';
 import { PortalThemeProvider } from '@/lib/portal-theme';
 import DashboardShell, { DashboardTab } from '@/components/team/DashboardShell';
 import OverviewTab from '@/components/team/tabs/OverviewTab';
@@ -25,6 +26,8 @@ import AnalyticsTab from '@/components/team/tabs/AnalyticsTab';
 import AnnouncementsTab from '@/components/team/tabs/AnnouncementsTab';
 import CMSTab from '@/components/team/tabs/CMSTab';
 import RBACSettingsTab from '@/components/team/tabs/RBACSettingsTab';
+
+const allowDemoFallback = process.env.NODE_ENV !== 'production';
 
 export default function TeamDashboard() {
   const router = useRouter();
@@ -45,30 +48,128 @@ export default function TeamDashboard() {
   const [roleConfigs, setRoleConfigs] = useState<RolePermissionConfig[]>(DEFAULT_ROLE_PERMISSIONS);
 
   useEffect(() => {
-    // Initialize store on first run
-    initStore();
+    let active = true;
 
-    // Check active session
-    const activeUser = getStore<StudioMember | null>(STORAGE_KEYS.ACTIVE_USER, null);
-    if (!activeUser) {
-      router.push('/login');
-      return;
+    async function initializeDashboard() {
+      try {
+        const response = await fetch('/api/auth/session');
+        if (!response.ok) {
+          router.replace('/login');
+          return;
+        }
+
+        const { user } = await response.json();
+        if (!active || !user) return;
+
+        initStore();
+        setStore(STORAGE_KEYS.ACTIVE_USER, user);
+        setCurrentUser(user);
+        const [
+          remoteProjects,
+          remoteInquiries,
+          remoteAnnouncements,
+          remoteSheets,
+          remoteMembers,
+          remoteCustomers,
+        ] = await Promise.all([
+          fetchFromMongo<StudioProject>('projects'),
+          fetchFromMongo<ClientInquiry>('inquiries'),
+          fetchFromMongo<StudioAnnouncement>('announcements'),
+          fetchFromMongo<CustomSheet>('sheets'),
+          fetchFromMongo<StudioMember>('members'),
+          fetchFromMongo<StudioCustomer>('customers'),
+        ]);
+
+        let remoteLeads: StudioLead[] | null = null;
+        let remoteColumns: LeadColumn[] | null = null;
+        try {
+          const leadsRes = await fetch('/api/leads');
+          if (leadsRes.ok) {
+            const leadsJson = await leadsRes.json();
+            if (leadsJson.success && Array.isArray(leadsJson.leads)) {
+              remoteLeads = leadsJson.leads;
+            }
+            if (leadsJson.success && Array.isArray(leadsJson.columns)) {
+              remoteColumns = leadsJson.columns;
+            }
+          }
+        } catch {
+          // fallback handled
+        }
+
+        let remoteTargets: StudioTarget[] | null = null;
+        try {
+          const targetsRes = await fetch('/api/targets');
+          if (targetsRes.ok) {
+            const targetsJson = await targetsRes.json();
+            if (targetsJson.success && Array.isArray(targetsJson.targets)) {
+              remoteTargets = targetsJson.targets;
+            }
+          }
+        } catch {
+          // fallback handled
+        }
+
+        if (!active) return;
+
+        const initialMembers = remoteMembers !== null && remoteMembers.length > 0
+          ? remoteMembers
+          : getStore(STORAGE_KEYS.MEMBERS, allowDemoFallback ? SEED_MEMBERS : []);
+        const initialProjects = remoteProjects !== null
+          ? remoteProjects
+          : getStore(STORAGE_KEYS.PROJECTS, allowDemoFallback ? SEED_PROJECTS : []);
+        const initialInquiries = remoteInquiries !== null
+          ? remoteInquiries
+          : getStore(STORAGE_KEYS.INQUIRIES, allowDemoFallback ? SEED_INQUIRIES : []);
+        const initialAnnouncements = remoteAnnouncements !== null
+          ? remoteAnnouncements
+          : getStore(STORAGE_KEYS.ANNOUNCEMENTS, allowDemoFallback ? SEED_ANNOUNCEMENTS : []);
+        const initialSheets = remoteSheets !== null
+          ? remoteSheets
+          : getStore(STORAGE_KEYS.SHEETS, allowDemoFallback ? SEED_SHEETS : []);
+        const initialLeads = remoteLeads !== null
+          ? remoteLeads
+          : getStore(STORAGE_KEYS.LEADS, allowDemoFallback ? SEED_LEADS : []);
+        const initialColumns = remoteColumns !== null
+          ? remoteColumns
+          : getStore(STORAGE_KEYS.LEAD_COLUMNS, DEFAULT_LEAD_COLUMNS);
+        const initialCustomers = remoteCustomers !== null
+          ? remoteCustomers
+          : getStore(STORAGE_KEYS.CUSTOMERS, allowDemoFallback ? SEED_CUSTOMERS : []);
+        const initialTargets = remoteTargets !== null
+          ? remoteTargets
+          : getStore(STORAGE_KEYS.TARGETS, allowDemoFallback ? DEFAULT_TARGETS : []);
+
+        setMembers(initialMembers);
+        setProjects(initialProjects);
+        setLeads(initialLeads);
+        setLeadColumns(initialColumns);
+        setCustomers(initialCustomers);
+        setTargets(initialTargets);
+        setInquiries(initialInquiries);
+        setAnnouncements(initialAnnouncements);
+        setSheets(initialSheets);
+        if (remoteProjects !== null) setStore(STORAGE_KEYS.PROJECTS, remoteProjects);
+        if (remoteInquiries !== null) setStore(STORAGE_KEYS.INQUIRIES, remoteInquiries);
+        if (remoteAnnouncements !== null) setStore(STORAGE_KEYS.ANNOUNCEMENTS, remoteAnnouncements);
+        if (remoteSheets !== null) setStore(STORAGE_KEYS.SHEETS, remoteSheets);
+        if (remoteMembers !== null && remoteMembers.length > 0) setStore(STORAGE_KEYS.MEMBERS, remoteMembers);
+        if (remoteLeads !== null) setStore(STORAGE_KEYS.LEADS, remoteLeads);
+        if (remoteColumns !== null) setStore(STORAGE_KEYS.LEAD_COLUMNS, remoteColumns);
+        if (remoteCustomers !== null) setStore(STORAGE_KEYS.CUSTOMERS, remoteCustomers);
+        if (remoteTargets !== null) setStore(STORAGE_KEYS.TARGETS, remoteTargets);
+        setCms(getStore(STORAGE_KEYS.CMS, SEED_CMS));
+        setRoleConfigs(getStore(STORAGE_KEYS.RBAC, DEFAULT_ROLE_PERMISSIONS));
+        setMounted(true);
+      } catch {
+        router.replace('/login');
+      }
     }
 
-    // Hydrate all data from localStorage
-    setCurrentUser(activeUser);
-    setMembers(getStore(STORAGE_KEYS.MEMBERS, SEED_MEMBERS));
-    setProjects(getStore(STORAGE_KEYS.PROJECTS, SEED_PROJECTS));
-    setLeads(getStore(STORAGE_KEYS.LEADS, SEED_LEADS));
-    setLeadColumns(getStore(STORAGE_KEYS.LEAD_COLUMNS, DEFAULT_LEAD_COLUMNS));
-    setCustomers(getStore(STORAGE_KEYS.CUSTOMERS, SEED_CUSTOMERS));
-    setTargets(getStore(STORAGE_KEYS.TARGETS, DEFAULT_TARGETS));
-    setInquiries(getStore(STORAGE_KEYS.INQUIRIES, SEED_INQUIRIES));
-    setAnnouncements(getStore(STORAGE_KEYS.ANNOUNCEMENTS, SEED_ANNOUNCEMENTS));
-    setSheets(getStore(STORAGE_KEYS.SHEETS, SEED_SHEETS));
-    setCms(getStore(STORAGE_KEYS.CMS, SEED_CMS));
-    setRoleConfigs(getStore(STORAGE_KEYS.RBAC, DEFAULT_ROLE_PERMISSIONS));
-    setMounted(true);
+    void initializeDashboard();
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   if (!mounted || !currentUser) {
@@ -85,9 +186,94 @@ export default function TeamDashboard() {
   const perms = getPermissions(currentUser.role);
   const unreadAnnCount = announcements.filter((a) => !a.readBy.includes(currentUser.id)).length;
 
-  function handleLogout() {
-    localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
-    router.push('/login');
+  function syncRemoteCollection<T extends { id: string }>(
+    collection: string,
+    previous: T[],
+    next: T[]
+  ) {
+    const previousById = new Map(previous.map((item) => [item.id, item]));
+    const nextById = new Map(next.map((item) => [item.id, item]));
+
+    for (const item of next) {
+      if (JSON.stringify(previousById.get(item.id)) === JSON.stringify(item)) continue;
+      const method = collection === 'inquiries' ? 'PUT' : 'POST';
+      void saveToMongo(collection, item, method).then((saved) => {
+        if (!saved) console.error(`Failed to persist ${collection} record ${item.id}.`);
+      });
+    }
+
+    for (const item of previous) {
+      if (!nextById.has(item.id)) {
+        void deleteFromMongo(collection, item.id).then((deleted) => {
+          if (!deleted) console.error(`Failed to delete ${collection} record ${item.id}.`);
+        });
+      }
+    }
+  }
+
+  function handleProjectsChange(next: StudioProject[]) {
+    syncRemoteCollection('projects', projects, next);
+    setProjects(next);
+    setStore(STORAGE_KEYS.PROJECTS, next);
+  }
+
+  function handleInquiriesChange(next: ClientInquiry[]) {
+    syncRemoteCollection('inquiries', inquiries, next);
+    setInquiries(next);
+    setStore(STORAGE_KEYS.INQUIRIES, next);
+  }
+
+  function handleAnnouncementsChange(next: StudioAnnouncement[]) {
+    syncRemoteCollection('announcements', announcements, next);
+    setAnnouncements(next);
+    setStore(STORAGE_KEYS.ANNOUNCEMENTS, next);
+  }
+
+  function handleSheetsChange(next: CustomSheet[]) {
+    syncRemoteCollection('sheets', sheets, next);
+    setSheets(next);
+    setStore(STORAGE_KEYS.SHEETS, next);
+  }
+
+  function handleLeadsChange(next: StudioLead[]) {
+    syncRemoteCollection('leads', leads, next);
+    setLeads(next);
+    setStore(STORAGE_KEYS.LEADS, next);
+  }
+
+  function handleCustomersChange(next: StudioCustomer[]) {
+    syncRemoteCollection('customers', customers, next);
+    setCustomers(next);
+    setStore(STORAGE_KEYS.CUSTOMERS, next);
+  }
+
+  function handleTargetsChange(next: StudioTarget[]) {
+    setTargets(next);
+    setStore(STORAGE_KEYS.TARGETS, next);
+    void fetch('/api/targets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targets: next }),
+    });
+  }
+
+  function handleColumnsChange(next: LeadColumn[]) {
+    setLeadColumns(next);
+    setStore(STORAGE_KEYS.LEAD_COLUMNS, next);
+    void fetch('/api/leads/columns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ columns: next }),
+    });
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_USER);
+      router.push('/login');
+    }
   }
 
   function renderTab() {
@@ -103,7 +289,7 @@ export default function TeamDashboard() {
             announcements={announcements}
             leads={leads}
             targets={targets}
-            onTargetsChange={setTargets}
+            onTargetsChange={handleTargetsChange}
             onTabChange={(tab) => setActiveTab(tab as DashboardTab)}
           />
         );
@@ -114,7 +300,7 @@ export default function TeamDashboard() {
             perms={perms}
             projects={projects}
             members={members}
-            onProjectsChange={setProjects}
+            onProjectsChange={handleProjectsChange}
           />
         );
       case 'LEADS':
@@ -127,10 +313,10 @@ export default function TeamDashboard() {
             leads={leads}
             columns={leadColumns}
             customers={customers}
-            onLeadsChange={setLeads}
-            onColumnsChange={setLeadColumns}
-            onProjectsChange={setProjects}
-            onCustomersChange={setCustomers}
+            onLeadsChange={handleLeadsChange}
+            onColumnsChange={handleColumnsChange}
+            onProjectsChange={handleProjectsChange}
+            onCustomersChange={handleCustomersChange}
           />
         );
       case 'INQUIRIES':
@@ -141,8 +327,8 @@ export default function TeamDashboard() {
             inquiries={inquiries}
             members={members}
             projects={projects}
-            onInquiriesChange={setInquiries}
-            onProjectsChange={setProjects}
+            onInquiriesChange={handleInquiriesChange}
+            onProjectsChange={handleProjectsChange}
           />
         );
       case 'TEAM':
@@ -170,7 +356,7 @@ export default function TeamDashboard() {
             currentUser={currentUser!}
             perms={perms}
             announcements={announcements}
-            onAnnouncementsChange={setAnnouncements}
+            onAnnouncementsChange={handleAnnouncementsChange}
           />
         );
       case 'CMS':
@@ -182,7 +368,7 @@ export default function TeamDashboard() {
             projects={projects}
             members={members}
             onCMSChange={setCms}
-            onProjectsChange={setProjects}
+            onProjectsChange={handleProjectsChange}
           />
         );
       case 'RBAC_SETTINGS':

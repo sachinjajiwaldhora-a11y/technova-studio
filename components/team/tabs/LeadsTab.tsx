@@ -84,12 +84,18 @@ export default function LeadsTab({
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<{
     success: boolean;
+    stage: 'preview' | 'complete';
     message: string;
     count: number;
     detectedType: string;
     warnings?: string[];
-    leads?: StudioLead[];
+    leads?: Partial<StudioLead>[];
   } | null>(null);
+  const [importPrompt, setImportPrompt] = useState('');
+  const [showImportPrompt, setShowImportPrompt] = useState(false);
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+  const [promptError, setPromptError] = useState<string | null>(null);
 
   // New Lead Form State
   const [newLeadForm, setNewLeadForm] = useState({
@@ -122,6 +128,72 @@ export default function LeadsTab({
     type: 'text' as LeadColumn['type'],
     options: '',
   });
+
+  useEffect(() => {
+    if (!['admin', 'manager'].includes(currentUser.role)) return;
+    let active = true;
+
+    async function hydrateLeadData() {
+      try {
+        const [leadsResponse, columnsResponse] = await Promise.all([
+          fetch('/api/leads'),
+          fetch('/api/leads/columns'),
+        ]);
+        const [leadResult, columnResult] = await Promise.all([
+          leadsResponse.json(),
+          columnsResponse.json(),
+        ]);
+        if (!active) return;
+
+        if (leadsResponse.ok && leadResult.success && !leadResult.fallback && Array.isArray(leadResult.leads)) {
+          onLeadsChange(leadResult.leads);
+          setStore(STORAGE_KEYS.LEADS, leadResult.leads);
+        }
+        if (columnsResponse.ok && columnResult.success && !columnResult.fallback && Array.isArray(columnResult.columns)) {
+          onColumnsChange(columnResult.columns);
+          setStore(STORAGE_KEYS.LEAD_COLUMNS, columnResult.columns);
+        }
+      } catch (error) {
+        console.error('Unable to hydrate lead data from the backend:', error);
+      }
+    }
+
+    void hydrateLeadData();
+    return () => {
+      active = false;
+    };
+  }, [currentUser.id, currentUser.role]);
+
+  useEffect(() => {
+    if (!importModalOpen || !showImportPrompt) return;
+    let active = true;
+
+    async function loadPrompt() {
+      setPromptLoading(true);
+      setPromptError(null);
+      try {
+        const response = await fetch('/api/leads/import/prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ columns }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success || typeof result.prompt !== 'string') {
+          throw new Error(result.error || 'Unable to generate the current PDF schema prompt.');
+        }
+        if (active) setImportPrompt(result.prompt);
+      } catch (error) {
+        if (active) setPromptError(error instanceof Error ? error.message : 'Unable to generate the PDF schema prompt.');
+      } finally {
+        if (active) setPromptLoading(false);
+      }
+    }
+
+    void loadPrompt();
+    return () => {
+      active = false;
+    };
+  }, [columns, importModalOpen, showImportPrompt]);
 
   // Filtered Leads list
   const filteredLeads = leads.filter((lead) => {
@@ -428,22 +500,38 @@ export default function LeadsTab({
     };
 
     const updated = [...columns, newCol];
-    onColumnsChange(updated);
-    setStore(STORAGE_KEYS.LEAD_COLUMNS, updated);
+    void saveLeadColumns(updated);
     setNewColumnForm({ label: '', type: 'text', options: '' });
   };
 
   const handleDeleteColumn = (colId: string) => {
     const updated = columns.filter((c) => c.id !== colId || c.isSystem);
-    onColumnsChange(updated);
-    setStore(STORAGE_KEYS.LEAD_COLUMNS, updated);
+    void saveLeadColumns(updated);
   };
 
   const toggleColumnVisibility = (colId: string) => {
     const updated = columns.map((c) => (c.id === colId ? { ...c, visible: !c.visible } : c));
-    onColumnsChange(updated);
-    setStore(STORAGE_KEYS.LEAD_COLUMNS, updated);
+    void saveLeadColumns(updated);
   };
+
+  async function saveLeadColumns(updatedColumns: LeadColumn[]) {
+    try {
+      const response = await fetch('/api/leads/columns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columns: updatedColumns }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to save the lead columns.');
+      }
+      onColumnsChange(updatedColumns);
+      setStore(STORAGE_KEYS.LEAD_COLUMNS, updatedColumns);
+    } catch (error) {
+      console.error('Unable to persist lead column schema:', error);
+      setImportError(error instanceof Error ? error.message : 'Unable to save lead columns.');
+    }
+  }
 
   const handleImportSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -459,14 +547,11 @@ export default function LeadsTab({
     try {
       const formData = new FormData();
       formData.append('file', importFile);
+      formData.append('action', 'preview');
+      formData.append('columns', JSON.stringify(columns));
 
       const res = await fetch('/api/leads/import', {
         method: 'POST',
-        headers: {
-          'x-author-id': currentUser.id,
-          'x-author-name': currentUser.name,
-          'x-author-role': currentUser.role,
-        },
         body: formData,
       });
 
@@ -478,27 +563,60 @@ export default function LeadsTab({
 
       setImportResult({
         success: true,
+        stage: 'preview',
         message: data.message,
         count: data.count,
         detectedType: data.detectedType,
         warnings: data.warnings,
         leads: data.leads,
       });
-
-      // Synchronize with state & local store
-      if (data.leads && data.leads.length > 0) {
-        const mergedLeads = [...data.leads, ...leads];
-        onLeadsChange(mergedLeads);
-        setStore(STORAGE_KEYS.LEADS, mergedLeads);
-      }
-
-      if (data.newColumns && data.newColumns.length > 0) {
-        const mergedCols = [...columns, ...data.newColumns];
-        onColumnsChange(mergedCols);
-        setStore(STORAGE_KEYS.LEAD_COLUMNS, mergedCols);
-      }
     } catch (err: any) {
       setImportError(err.message || 'An error occurred while uploading file');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importResult?.leads?.length || importResult.stage !== 'preview') return;
+
+    setImportLoading(true);
+    setImportError(null);
+    try {
+      const response = await fetch('/api/leads/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'commit', leads: importResult.leads }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success || !Array.isArray(result.leads)) {
+        throw new Error(result.error || 'Failed to add the confirmed leads.');
+      }
+
+      const confirmedLeads = result.leads as StudioLead[];
+      const mergedLeads = [...confirmedLeads, ...leads];
+      onLeadsChange(mergedLeads);
+      setStore(STORAGE_KEYS.LEADS, mergedLeads);
+
+      const addedColumns = (result.newColumns || []) as LeadColumn[];
+      if (addedColumns.length) {
+        const mergedColumns = [
+          ...columns,
+          ...addedColumns.filter((column) => !columns.some((existing) => existing.id === column.id)),
+        ];
+        onColumnsChange(mergedColumns);
+        setStore(STORAGE_KEYS.LEAD_COLUMNS, mergedColumns);
+      }
+
+      setImportResult({
+        ...importResult,
+        stage: 'complete',
+        message: result.message,
+        count: result.count,
+        leads: confirmedLeads,
+      });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Unable to add the confirmed leads.');
     } finally {
       setImportLoading(false);
     }
@@ -1561,7 +1679,7 @@ export default function LeadsTab({
                           Drop your leads file here, or <span className="text-emerald-400 underline">browse</span>
                         </p>
                         <p className="font-mono text-[11px] text-[var(--portal-text-muted,#71717a)] mt-1">
-                          Supported extensions: .csv, .xlsx, .xls, .pdf (up to 20MB)
+                          Supported extensions: .csv, .xlsx, .xls, .pdf (up to 10 MB)
                         </p>
                       </div>
                     </label>
@@ -1589,6 +1707,59 @@ export default function LeadsTab({
                 </p>
               </div>
 
+              <div className="rounded-lg border border-violet-500/30 bg-violet-950/10 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-mono text-xs font-bold uppercase text-violet-300">Dynamic PDF Format Prompt</p>
+                    <p className="mt-1 text-[11px] text-[var(--portal-text-muted,#a1a1aa)]">
+                      Built from the current backend lead columns. It refreshes when columns change.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowImportPrompt((visible) => !visible)}
+                    className="shrink-0 rounded border border-violet-400/40 px-3 py-2 font-mono text-[10px] font-bold uppercase text-violet-200 hover:bg-violet-500/10"
+                  >
+                    {showImportPrompt ? 'HIDE PROMPT' : 'SHOW AI PROMPT'}
+                  </button>
+                </div>
+                {showImportPrompt && (
+                  <div className="space-y-2">
+                    {promptLoading ? (
+                      <p className="font-mono text-xs text-zinc-400">Loading the latest lead schema…</p>
+                    ) : (
+                      <textarea
+                        readOnly
+                        value={importPrompt}
+                        rows={Math.min(16, Math.max(8, importPrompt.split('\n').length))}
+                        className="w-full resize-y rounded border border-[var(--portal-border,#27272a)] bg-black/50 p-3 font-mono text-[11px] leading-relaxed text-zinc-300"
+                        aria-label="AI prompt for creating a lead import PDF"
+                      />
+                    )}
+                    {promptError && <p className="font-mono text-[11px] text-rose-300">{promptError}</p>}
+                    {importPrompt && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(importPrompt);
+                            setPromptCopied(true);
+                            window.setTimeout(() => setPromptCopied(false), 2000);
+                          } catch {
+                            setPromptError('Clipboard access failed. Select and copy the prompt text manually.');
+                          }
+                        }}
+                        disabled={promptLoading}
+                        className="inline-flex items-center gap-2 rounded border border-violet-400/40 px-3 py-2 font-mono text-[10px] font-bold uppercase text-violet-200 hover:bg-violet-500/10"
+                      >
+                        {promptCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {promptCopied ? 'COPIED' : 'COPY PROMPT'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Error Message */}
               {importError && (
                 <div className="p-3 rounded-lg border border-rose-500/40 bg-rose-950/20 text-rose-300 font-mono text-xs flex items-center gap-2">
@@ -1597,7 +1768,7 @@ export default function LeadsTab({
                 </div>
               )}
 
-              {/* Success Result View */}
+              {/* Preview or completed import */}
               {importResult && (
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg border border-emerald-500/40 bg-emerald-950/20 space-y-2">
@@ -1605,7 +1776,7 @@ export default function LeadsTab({
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                         <span className="font-mono text-sm font-bold text-white uppercase">
-                          IMPORT COMPLETED SUCCESSFULLY
+                          {importResult.stage === 'preview' ? 'REVIEW BEFORE ADDING' : 'IMPORT COMPLETED'}
                         </span>
                       </div>
                       <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold uppercase">
@@ -1613,7 +1784,7 @@ export default function LeadsTab({
                       </span>
                     </div>
                     <p className="font-mono text-xs text-emerald-200">
-                      {importResult.message} ({importResult.count} records loaded).
+                      {importResult.message} ({importResult.count} records).
                     </p>
                     {importResult.warnings && importResult.warnings.length > 0 && (
                       <div className="pt-2 border-t border-emerald-500/20 font-mono text-[11px] text-amber-300 space-y-0.5">
@@ -1660,10 +1831,15 @@ export default function LeadsTab({
                       </div>
                       {importResult.leads.length > 10 && (
                         <p className="font-mono text-[10px] text-zinc-500 text-right">
-                          + {importResult.leads.length - 10} more leads imported to pipeline
+                          + {importResult.leads.length - 10} more leads detected
                         </p>
                       )}
                     </div>
+                  )}
+                  {importResult.stage === 'preview' && (
+                    <p className="rounded border border-amber-500/30 bg-amber-950/10 p-3 font-mono text-xs text-amber-200">
+                      No leads have been saved yet. Review the detected records, then confirm to add all {importResult.count}.
+                    </p>
                   )}
                 </div>
               )}
@@ -1681,10 +1857,10 @@ export default function LeadsTab({
                 }}
                 className="px-4 py-2 border border-[var(--portal-border,#27272a)] rounded font-mono text-xs font-bold text-[var(--portal-text-muted,#71717a)] hover:text-white hover:bg-white/5 transition-colors"
               >
-                {importResult ? 'CLOSE' : 'CANCEL'}
+                {importResult?.stage === 'complete' ? 'CLOSE' : 'CANCEL'}
               </button>
 
-              {importResult ? (
+              {importResult?.stage === 'complete' ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -1697,6 +1873,16 @@ export default function LeadsTab({
                 >
                   <Check className="w-4 h-4" />
                   <span>VIEW IN PIPELINE</span>
+                </button>
+              ) : importResult?.stage === 'preview' ? (
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmImport()}
+                  disabled={importLoading || !importResult.leads?.length}
+                  className="px-5 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-black font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-500"
+                >
+                  {importLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span>{importLoading ? 'ADDING CONFIRMED LEADS…' : `CONFIRM & ADD ${importResult.count} LEADS`}</span>
                 </button>
               ) : (
                 <button
@@ -1717,7 +1903,7 @@ export default function LeadsTab({
                   ) : (
                     <>
                       <UploadCloud className="w-4 h-4" />
-                      <span>UPLOAD & PARSE LEADS</span>
+                      <span>SCAN FILE & PREVIEW</span>
                     </>
                   )}
                 </button>
@@ -1729,4 +1915,3 @@ export default function LeadsTab({
     </div>
   );
 }
-

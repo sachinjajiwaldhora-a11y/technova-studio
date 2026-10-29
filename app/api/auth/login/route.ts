@@ -3,11 +3,50 @@
 
 import { NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
-import { StudioMember } from '@/lib/store';
+import { SEED_MEMBERS, StudioMember } from '@/lib/store';
+import { createSessionToken, setSessionCookie } from '@/lib/auth';
+import { hashPassword, isPasswordHash, verifyPassword } from '@/lib/password';
+
+function toSafeProfile(member: Record<string, any>): StudioMember {
+  const name = member.name || 'Studio Member';
+  const role = ['admin', 'manager', 'working_member', 'member'].includes(member.role)
+    ? member.role
+    : 'member';
+  const id = member.id || member._id?.toString();
+  if (!id || !member.email) {
+    throw new Error('Member record is missing required identity fields.');
+  }
+  return {
+    id,
+    name,
+    email: member.email,
+    password: '',
+    role,
+    department: member.department || 'Fullstack Engineering',
+    skills: member.skills || [],
+    clearanceCode: member.clearanceCode || member.clearance_code || 'LVL-05',
+    photoInitials: member.photoInitials || member.photo_initials || name.slice(0, 2).toUpperCase(),
+    accentColor: member.accentColor || member.accent_color || '#dc2626',
+    privateNotes: '',
+    managerNotes: '',
+    activeProjectIds: member.activeProjectIds || member.active_project_ids || [],
+    metrics: member.metrics || {
+      tasksCompleted: 0,
+      tasksOverdue: 0,
+      avgCompletionDays: 0,
+      hoursLoggedTotal: 0,
+      deliveryRatePct: 100,
+    },
+    createdAt: member.createdAt || member.created_at || new Date().toISOString(),
+    lastActive: new Date().toISOString(),
+  };
+}
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const password = typeof body.password === 'string' ? body.password : '';
 
     if (!email || !password) {
       return NextResponse.json(
@@ -16,26 +55,47 @@ export async function POST(request: Request) {
       );
     }
 
-    // If MongoDB is not configured, inform client so it can seamlessly fallback
+    let member: Record<string, any> | null = null;
+
     if (!isMongoConfigured()) {
-      return NextResponse.json(
-        {
-          success: false,
-          fallback: true,
-          message: 'MongoDB is not configured. Falling back to local store.',
-        },
-        { status: 200 }
-      );
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { success: false, error: 'Database authentication is not configured.' },
+          { status: 503 }
+        );
+      }
+      member = SEED_MEMBERS.find(
+        (candidate) =>
+          candidate.email.toLowerCase() === email.toLowerCase() &&
+          candidate.password === password
+      ) || null;
+    } else {
+      const db = await getDb();
+      const escapedEmail = email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      member = await db.collection(MONGO_COLLECTIONS.MEMBERS).findOne({
+        email: { $regex: new RegExp(`^${escapedEmail}$`, 'i') },
+      });
+
+      if (member) {
+        const storedPassword = member.passwordHash || member.password;
+        const passwordMatches = typeof storedPassword === 'string'
+          ? await verifyPassword(password, storedPassword)
+          : false;
+        if (!passwordMatches) member = null;
+        else {
+          const setValues: Record<string, unknown> = {
+            lastActive: new Date().toISOString(),
+          };
+          if (!isPasswordHash(storedPassword)) {
+            setValues.passwordHash = await hashPassword(password);
+          }
+          await db.collection(MONGO_COLLECTIONS.MEMBERS).updateOne({ _id: member._id }, {
+            $set: setValues,
+            $unset: { password: '' },
+          });
+        }
+      }
     }
-
-    const db = await getDb();
-    const membersCollection = db.collection(MONGO_COLLECTIONS.MEMBERS);
-
-    // Case-insensitive email query
-    const member = await membersCollection.findOne({
-      email: { $regex: new RegExp(`^${email.trim()}$`, 'i') },
-      password: password,
-    });
 
     if (!member) {
       return NextResponse.json(
@@ -44,42 +104,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // Format member data to match StudioMember interface
-    const userProfile: StudioMember = {
-      id: member.id || member._id.toString(),
-      name: member.name,
-      email: member.email,
-      password: member.password,
-      role: member.role || 'member',
-      department: member.department || 'Fullstack Engineering',
-      skills: member.skills || [],
-      clearanceCode: member.clearanceCode || member.clearance_code || 'LVL-05',
-      photoInitials: member.photoInitials || member.photo_initials || member.name.slice(0, 2).toUpperCase(),
-      accentColor: member.accentColor || member.accent_color || '#dc2626',
-      privateNotes: member.privateNotes || member.private_notes || '',
-      managerNotes: member.managerNotes || member.manager_notes || '',
-      activeProjectIds: member.activeProjectIds || member.active_project_ids || [],
-      metrics: member.metrics || {
-        tasksCompleted: 0,
-        tasksOverdue: 0,
-        avgCompletionDays: 0,
-        hoursLoggedTotal: 0,
-        deliveryRatePct: 100,
-      },
-      createdAt: member.createdAt || member.created_at || new Date().toISOString(),
-      lastActive: new Date().toISOString(),
-    };
-
-    // Update lastActive timestamp in background
-    membersCollection.updateOne(
-      { _id: member._id },
-      { $set: { lastActive: new Date().toISOString() } }
-    ).catch(() => {});
-
-    return NextResponse.json({
+    const userProfile = toSafeProfile(member);
+    const token = createSessionToken({
+      id: userProfile.id,
+      name: userProfile.name,
+      email: userProfile.email,
+      role: userProfile.role,
+    });
+    const response = NextResponse.json({
       success: true,
       user: userProfile,
     });
+    setSessionCookie(response, token);
+    return response;
   } catch (error: any) {
     console.error('MongoDB Auth Error:', error);
     return NextResponse.json(

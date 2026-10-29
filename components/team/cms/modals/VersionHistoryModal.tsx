@@ -1,7 +1,7 @@
 // FILE PATH: components/team/cms/modals/VersionHistoryModal.tsx
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { X, History, RotateCcw, CheckCircle2, Clock } from 'lucide-react';
 import { CMSVersion, CMSSectionKey } from '@/lib/cms-types';
 import { revertToVersion } from '@/lib/cms';
@@ -24,6 +24,8 @@ export default function VersionHistoryModal({
   onReverted,
   currentUser,
 }: VersionHistoryModalProps) {
+  const [error, setError] = useState('');
+  const [reverting, setReverting] = useState(false);
   if (!isOpen) return null;
 
   const handleRevert = async (ver: CMSVersion) => {
@@ -31,24 +33,40 @@ export default function VersionHistoryModal({
       return;
     }
 
-    revertToVersion(ver.id, { id: currentUser.id, name: currentUser.name });
     try {
-      await fetch('/api/cms/versions', {
+      setReverting(true);
+      setError('');
+      const response = await fetch('/api/cms/versions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-author-id': currentUser.id,
-          'x-author-name': currentUser.name,
-          'x-author-role': currentUser.role,
         },
         body: JSON.stringify({ versionId: ver.id }),
       });
-    } catch {
-      // Local fallback handled
-    }
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Could not restore this version');
+      }
 
-    onReverted();
-    onClose();
+      if (result.fallback) {
+        if (!revertToVersion(ver.id, { id: currentUser.id, name: currentUser.name }, false)) {
+          throw new Error('The saved local version could not be found.');
+        }
+      } else {
+        const published = JSON.parse(localStorage.getItem('tnova_cms_published') || '{}');
+        localStorage.setItem('tnova_cms_published', JSON.stringify({
+          ...published,
+          [ver.sectionKey]: ver.data,
+        }));
+      }
+
+      onReverted();
+      onClose();
+    } catch (revertError) {
+      setError(revertError instanceof Error ? revertError.message : 'Could not restore this version');
+    } finally {
+      setReverting(false);
+    }
   };
 
   return (
@@ -72,6 +90,7 @@ export default function VersionHistoryModal({
         <p className="mt-2 text-xs text-[var(--text-muted)]">
           Technova CMS retains the last 10 published versions of each section for rollback integrity.
         </p>
+        {error && <p role="alert" className="mt-3 text-xs text-red-400">{error}</p>}
 
         <div className="mt-4 flex-1 overflow-y-auto space-y-2.5 pr-1">
           {versions.length === 0 ? (
@@ -102,10 +121,11 @@ export default function VersionHistoryModal({
 
                 <button
                   onClick={() => handleRevert(ver)}
+                  disabled={reverting}
                   className="theme-btn-secondary px-3 py-1.5 text-xs font-semibold uppercase flex items-center space-x-1 hover:border-amber-400 hover:text-amber-400"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>REVERT</span>
+                  <span>{reverting ? 'RESTORING...' : 'REVERT'}</span>
                 </button>
               </div>
             ))
@@ -124,4 +144,3 @@ export default function VersionHistoryModal({
     </div>
   );
 }
-

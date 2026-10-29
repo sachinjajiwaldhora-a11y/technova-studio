@@ -5,9 +5,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { CMS_SEED_DEFAULTS } from '@/lib/cms';
 import { CMSSectionKey } from '@/lib/cms-types';
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden: admin access required' }, { status: 403 });
+    }
+
     if (!isMongoConfigured()) {
       return NextResponse.json({
         success: true,
@@ -69,8 +75,8 @@ export async function POST(request: NextRequest) {
     await auditCol.insertOne({
       id: `aud-${Date.now().toString(36)}`,
       timestamp: now,
-      authorId: 'system',
-      authorName: 'System Seed Engine',
+      authorId: member.id,
+      authorName: member.name,
       action: 'PUBLISH',
       sectionKey: 'hero',
       summary: `Pre-filled ${seededSections} CMS sections and initial completed project bridge mappings.`,
@@ -85,4 +91,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

@@ -31,34 +31,44 @@ export default function AnalyticsTab({
   currentUser, perms, projects, inquiries, members,
 }: AnalyticsTabProps) {
   const stats = useMemo(() => {
-    const activeProjects = projects.filter((p) => p.status === 'ACTIVE');
-    const completedProjects = projects.filter((p) => p.status === 'COMPLETED');
-    const inReview = projects.filter((p) => p.status === 'REVIEW');
+    const safeProjects = (Array.isArray(projects) ? projects : [])
+      .filter((project): project is StudioProject => Boolean(project));
+    const safeInquiries = (Array.isArray(inquiries) ? inquiries : [])
+      .filter((inquiry): inquiry is ClientInquiry => Boolean(inquiry));
+    const safeMembers = (Array.isArray(members) ? members : [])
+      .filter((member): member is StudioMember => Boolean(member));
+    const activeProjects = safeProjects.filter((p) => p.status === 'ACTIVE');
+    const completedProjects = safeProjects.filter((p) => p.status === 'COMPLETED');
+    const inReview = safeProjects.filter((p) => p.status === 'REVIEW');
 
-    const totalMilestones = projects.flatMap((p) => p.milestones);
-    const doneMilestones = totalMilestones.filter((m) => m.completed);
+    const totalMilestones = safeProjects
+      .flatMap((project) => Array.isArray(project.milestones) ? project.milestones : [])
+      .filter((milestone): milestone is NonNullable<typeof milestone> => Boolean(milestone));
+    const doneMilestones = totalMilestones.filter((milestone) => milestone.completed);
     const milestoneCompletionPct = totalMilestones.length > 0
       ? Math.round((doneMilestones.length / totalMilestones.length) * 100) : 0;
 
-    const totalHours = projects.reduce((s, p) => s + p.actualHours, 0);
-    const estimatedHours = projects.reduce((s, p) => s + p.estimatedHours, 0);
+    const totalHours = safeProjects.reduce((sum, project) => sum + (Number(project.actualHours) || 0), 0);
+    const estimatedHours = safeProjects.reduce((sum, project) => sum + (Number(project.estimatedHours) || 0), 0);
 
-    const pipelineRevenue = inquiries.filter((i) => i.status !== 'LOST').reduce((s, i) => s + i.expectedRevenue, 0);
-    const closedRevenue = projects
+    const pipelineRevenue = safeInquiries
+      .filter((inquiry) => inquiry.status !== 'LOST')
+      .reduce((sum, inquiry) => sum + (Number(inquiry.expectedRevenue) || 0), 0);
+    const closedRevenue = safeProjects
       .filter((p) => p.source === 'CLIENT_INQUIRY' && p.status === 'COMPLETED')
       .reduce((s, p) => s + (p.clientInfo?.expectedRevenue || 0), 0);
 
-    const conversionRate = inquiries.length > 0
-      ? Math.round((inquiries.filter((i) => i.status === 'LOCKED_DEAL').length / inquiries.length) * 100) : 0;
+    const conversionRate = safeInquiries.length > 0
+      ? Math.round((safeInquiries.filter((i) => i.status === 'LOCKED_DEAL').length / safeInquiries.length) * 100) : 0;
 
-    const avgDelivery = members.reduce((s, m) => s + m.metrics.deliveryRatePct, 0) / (members.length || 1);
+    const avgDelivery = safeMembers.reduce((sum, member) => sum + (Number(member.metrics?.deliveryRatePct) || 0), 0) / (safeMembers.length || 1);
 
-    const projectsByType = projects.reduce((acc, p) => {
+    const projectsByType = safeProjects.reduce((acc, p) => {
       acc[p.type] = (acc[p.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    const inquiryByStatus = inquiries.reduce((acc, i) => {
+    const inquiryByStatus = safeInquiries.reduce((acc, i) => {
       acc[i.status] = (acc[i.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -67,7 +77,8 @@ export default function AnalyticsTab({
       activeProjects: activeProjects.length,
       completedProjects: completedProjects.length,
       inReview: inReview.length,
-      totalProjects: projects.length,
+      totalProjects: safeProjects.length,
+      totalInquiries: safeInquiries.length,
       milestoneCompletionPct,
       doneMilestones: doneMilestones.length,
       totalMilestones: totalMilestones.length,
@@ -82,8 +93,9 @@ export default function AnalyticsTab({
     };
   }, [projects, inquiries, members]);
 
-  const topPerformers = [...members]
-    .sort((a, b) => b.metrics.tasksCompleted - a.metrics.tasksCompleted)
+  const topPerformers = (Array.isArray(members) ? members : [])
+    .filter((member): member is StudioMember => Boolean(member))
+    .sort((a, b) => (Number(b.metrics?.tasksCompleted) || 0) - (Number(a.metrics?.tasksCompleted) || 0))
     .slice(0, 5);
 
   return (
@@ -151,7 +163,7 @@ export default function AnalyticsTab({
             </div>
             <div className="space-y-3">
               {Object.entries(stats.inquiryByStatus).map(([status, count]) => {
-                const pct = inquiries.length > 0 ? (count / inquiries.length) * 100 : 0;
+                const pct = stats.totalInquiries > 0 ? (count / stats.totalInquiries) * 100 : 0;
                 const colors: Record<string, string> = {
                   NEW_INQUIRY: 'bg-cyan-500',
                   CALL_SCHEDULED: 'bg-violet-500',
@@ -180,7 +192,7 @@ export default function AnalyticsTab({
             </div>
             <div className="space-y-3">
               {Object.entries(stats.projectsByType).map(([type, count]) => {
-                const pct = projects.length > 0 ? (count / projects.length) * 100 : 0;
+                const pct = stats.totalProjects > 0 ? (count / stats.totalProjects) * 100 : 0;
                 const colors: Record<string, string> = {
                   DEV_BUILD: 'bg-red-500',
                   CLIENT_COMMISSION: 'bg-cyan-500',
@@ -255,21 +267,21 @@ export default function AnalyticsTab({
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-center">
-                    <p className="font-mono text-xs text-emerald-400 font-bold">{m.metrics.tasksCompleted}</p>
+                    <p className="font-mono text-xs text-emerald-400 font-bold">{m.metrics?.tasksCompleted || 0}</p>
                     <p className="font-mono text-[7px] text-zinc-600">DONE</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-mono text-xs text-cyan-400 font-bold">{m.metrics.hoursLoggedTotal}h</p>
+                    <p className="font-mono text-xs text-cyan-400 font-bold">{m.metrics?.hoursLoggedTotal || 0}h</p>
                     <p className="font-mono text-[7px] text-zinc-600">HOURS</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-mono text-xs text-violet-400 font-bold">{m.metrics.deliveryRatePct}%</p>
+                    <p className="font-mono text-xs text-violet-400 font-bold">{m.metrics?.deliveryRatePct || 0}%</p>
                     <p className="font-mono text-[7px] text-zinc-600">RATE</p>
                   </div>
-                  {m.metrics.tasksOverdue > 0 && (
+                  {(m.metrics?.tasksOverdue || 0) > 0 && (
                     <div className="flex items-center space-x-1 font-mono text-[9px] text-red-400">
                       <AlertTriangle className="w-3 h-3" />
-                      <span>{m.metrics.tasksOverdue}</span>
+                      <span>{m.metrics?.tasksOverdue || 0}</span>
                     </div>
                   )}
                 </div>

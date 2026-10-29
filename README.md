@@ -1,20 +1,19 @@
 # TECHNOVA STUDIO ⚡
 
 > **Beyond Digital Engineering**  
-> Elite Technical Architecture, Real-time WebGL Systems & Cybernetic Internal Command Dashboard.
+> Technical architecture, interactive studio experiences, and an internal operations dashboard.
 
 [![Next.js 16](https://img.shields.io/badge/Next.js-16.4.3-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![React 19](https://img.shields.io/badge/React-19.3.1-blue?style=for-the-badge&logo=react)](https://react.dev/)
 [![TypeScript 5](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-WebGL_R3F-black?style=for-the-badge&logo=three.js)](https://threejs.org/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.3-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-[![Supabase Ready](https://img.shields.io/badge/Supabase-PostgreSQL_Ready-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Optional_Persistence-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
 
 ---
 
 ## 🌟 Executive Overview
 
-**Technova Studio** is an ultra-modern, high-performance web platform combining a cutting-edge **Client-Facing WebGL Experience** with an internal **Enterprise Operations & Team Command Center (ERP / CMS / CRM)**. 
+**Technova Studio** is a Next.js web platform combining a client-facing studio website with an internal operations and CMS dashboard.
 
 Designed for boutique engineering studios, high-tech agencies, and research teams, it provides client acquisition funnels, transparent client project telemetry tracking, dynamic live CMS controls, and granular Role-Based Access Control (RBAC).
 
@@ -24,7 +23,7 @@ Designed for boutique engineering studios, high-tech agencies, and research team
 
 ### 1. 🌌 Public Studio Experience (`/`)
 * **Cybernetic HUD Design System:** Deep-space dark mode, high-contrast red accent palette, custom cursor physics, and terminal bootloader sequence (`BootSequence.tsx`).
-* **Real-time 3D Scene (`Scene3D.tsx`):** Powered by Three.js & `@react-three/fiber` with custom GLSL shaders, particle constellations, and interactive depth reaction.
+* **Animated Studio Interface:** Custom CSS/SVG visuals, page transitions, and interactive navigation.
 * **Autonomous Robotic Guide (`RoboticAgent.tsx`):** Floating interactive studio assistant providing system status and interactive navigation guidance.
 * **Interactive Portfolio Showcase:** Live showcase of studio engineering builds with live sandbox previews, technical tags, and filter states.
 * **Client Scoping & Call Booking Engine (`BookingModal.tsx`):**
@@ -43,7 +42,7 @@ Designed for boutique engineering studios, high-tech agencies, and research team
 ---
 
 ### 3. 🛡️ Internal Operations & Team Command Center (`/team`)
-Protected behind a military-grade clearance login gateway (`/login`), the internal portal offers 9 unified control centers:
+Protected by a signed, HttpOnly session issued at `/login`, the internal portal offers 9 control centers:
 
 | Module | Features & Capabilities |
 | :--- | :--- |
@@ -63,13 +62,12 @@ Protected behind a military-grade clearance login gateway (`/login`), the intern
 
 * **Framework:** [Next.js 16 (App Router)](https://nextjs.org/)
 * **Runtime / Language:** React 19 + TypeScript 5
-* **3D Graphics & Canvas:** Three.js, `@react-three/fiber`, `@react-three/drei`
-* **Styling & Design System:** Tailwind CSS v4, `@tailwindcss/postcss`, Framer Motion, Lenis Smooth Scroll
+* **Motion & Visual Effects:** GSAP, CSS/SVG effects, and optional embedded project previews
+* **Styling & Design System:** Tailwind CSS v4, `@tailwindcss/postcss`, and custom CSS theme tokens
 * **Icons:** [Lucide React](https://lucide.dev/)
-* **Data Storage / Persistence:**
-  * **Dual Engine Architecture:**
-    1. **Zero-Config LocalStorage Mode:** Runs out-of-the-box with pre-seeded demo state. No setup required.
-    2. **Supabase Cloud Mode:** Fully configured PostgreSQL database schema with Row Level Security (RLS) support.
+* **Data Storage / Persistence:** Browser `localStorage` supports the zero-setup demo; MongoDB-backed API routes persist CMS content, inquiries, projects, announcements, and sheets when configured. Supabase files are legacy scaffolding and are not the active application persistence adapter.
+
+The public tracker queries MongoDB by tracking code when configured and falls back to local demo data otherwise. Some portal modules (including lead/customer/target records and portions of team/RBAC state) still use browser-local storage; use MongoDB-backed collections for shared operational data.
 
 ---
 
@@ -126,27 +124,23 @@ To test the internal command portal, navigate to `/login` or click **"PORTAL ENT
 
 ---
 
-## 🌐 Supabase Cloud Database Setup (Optional)
+## 🍃 MongoDB Setup (Optional)
 
-If you wish to synchronize data across multiple users or connect a persistent cloud database:
+To persist supported application flows across users:
 
-1. Create a free project at [supabase.com](https://supabase.com).
-2. Go to **SQL Editor** in your Supabase dashboard.
-3. Open the file `supabase_schema.sql` in this repo, copy its contents, and run it in the SQL Editor.
-4. Create a `.env.local` file by copying `.env.example`:
+1. Configure a MongoDB database (Atlas or self-hosted).
+2. Copy `.env.example` to `.env.local` and set `MONGODB_URI` and `MONGODB_DB`.
+3. Run `npm run seed:mongo` to populate the internal collections.
+4. Run `npm run seed:cms` or sign in as an admin and initialize the CMS sections.
+5. Restart the dev server and check `/api/health`.
 
 ```bash
-cp .env.example .env.local
+Copy-Item .env.example .env.local
 ```
 
-5. Fill in your Supabase project credentials in `.env.local`:
+`supabase_schema.sql` and the Supabase client are retained for legacy/reference use; configuring Supabase alone does not activate cloud synchronization in the current app.
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-public-key
-```
-
-6. Restart your dev server (`npm run dev`). The application will automatically detect Supabase and route reads/writes to your cloud database.
+LocalStorage-only demo mode is intended for local development, not as a shared production database.
 
 ---
 
@@ -165,9 +159,6 @@ my-studio-website/
 │   └── track/
 │       └── page.tsx             # Client project tracking portal
 ├── components/
-│   ├── canvas/
-│   │   ├── Scene3D.tsx          # Three.js 3D viewport & particle constellation
-│   │   └── Shaders.tsx          # Custom WebGL fragment/vertex shaders
 │   ├── entry/
 │   │   └── BootSequence.tsx     # Futuristic terminal bootloader
 │   ├── modals/
@@ -215,8 +206,11 @@ The fastest way to deploy Technova Studio is using the [Vercel Platform](https:/
 
 1. Push your repository to GitHub, GitLab, or Bitbucket.
 2. Import the project into Vercel.
-3. If using Supabase, add your environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in the Vercel dashboard.
-4. Click **Deploy**.
+3. Configure `MONGODB_URI`, `MONGODB_DB`, `AUTH_SESSION_SECRET` (unique random value, at least 32 characters), and `NEXT_PUBLIC_SITE_URL` in the deployment environment. If external lead webhooks are used, also set `LEADS_WEBHOOK_SECRET`.
+4. Seed MongoDB from a trusted environment. Do not rely on browser-local demo state for production data.
+5. Click **Deploy**, then verify login, CMS draft/publish/history, public inquiry submission, and tracking against the deployed database.
+
+Production team login requires MongoDB and a configured session secret; the local demo login fallback is disabled in production. The team session is stored in a signed HttpOnly cookie. Rotate any seeded credentials before using the portal for real operations.
 
 ---
 

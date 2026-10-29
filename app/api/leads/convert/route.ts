@@ -6,11 +6,16 @@ import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import {
   StudioLead, StudioProject, StudioCustomer, generateCustomerId,
 } from '@/lib/store';
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const authorId = request.headers.get('x-author-id') || 'usr-admin';
-    const authorName = request.headers.get('x-author-name') || 'Studio Admin';
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: member ? 403 : 401 });
+    }
+    const authorId = member.id;
+    const authorName = member.name;
     const body = await request.json();
 
     const { leadId, projectTitle, managerId, assignedMemberIds, dueDate, estimatedHours, priority, type } = body;
@@ -48,32 +53,48 @@ export async function POST(request: NextRequest) {
     // 2. Provision Customer ID (or reuse if already has one)
     let customerId = lead.customerId;
     if (!customerId) {
-      const custCount = await customersCol.countDocuments({});
-      customerId = generateCustomerId(custCount);
+      const currentYear = new Date().getFullYear();
+      const prefix = `CUST-${currentYear}-`;
+      const latestCust = await customersCol
+        .find({ id: { $regex: `^${prefix}` } })
+        .sort({ id: -1 })
+        .limit(1)
+        .toArray();
+
+      let nextSeq = 1;
+      if (latestCust.length > 0 && latestCust[0].id) {
+        const parts = latestCust[0].id.split('-');
+        const parsed = parseInt(parts[2], 10);
+        if (!isNaN(parsed)) {
+          nextSeq = parsed + 1;
+        }
+      } else {
+        const custCount = await customersCol.countDocuments({});
+        nextSeq = custCount + 1;
+      }
+      customerId = `${prefix}${String(nextSeq).padStart(3, '0')}`;
     }
 
     const prjId = `prj-${Date.now()}`;
     const trackingCode = `TRK-${customerId}`;
 
     // 3. Upsert Studio Customer
-    const customerRecord: StudioCustomer = {
-      id: customerId,
-      name: lead.name,
-      email: lead.email,
-      phone: lead.phone || '',
-      company: lead.company || 'Private Enterprise Client',
-      firstLeadId: lead.id,
-      projectIds: [prjId],
-      totalLifetimeValue: lead.value || 0,
-      status: 'ACTIVE_CLIENT',
-      createdAt: now,
-      updatedAt: now,
-    };
-
     await customersCol.updateOne(
       { id: customerId },
       {
-        $set: customerRecord,
+        $setOnInsert: {
+          id: customerId,
+          firstLeadId: lead.id,
+          createdAt: now,
+        },
+        $set: {
+          name: lead.name,
+          email: lead.email,
+          phone: lead.phone || '',
+          company: lead.company || 'Private Enterprise Client',
+          status: 'ACTIVE_CLIENT',
+          updatedAt: now,
+        },
         $addToSet: { projectIds: prjId },
         $inc: { totalLifetimeValue: lead.value || 0 },
       },
@@ -156,4 +177,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

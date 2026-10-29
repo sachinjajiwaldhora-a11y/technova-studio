@@ -1,163 +1,212 @@
-// FILE PATH: app/api/leads/import/route.ts
-// TECHNOVA STUDIO // LEAD FILE UPLOAD & PARSER API (CSV / EXCEL / PDF)
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
-import { StudioLead, LeadColumn, DEFAULT_LEAD_COLUMNS } from '@/lib/store';
+import { DEFAULT_LEAD_COLUMNS, LeadColumn, StudioLead } from '@/lib/store';
 import { parseUploadedLeadFile } from '@/lib/lead-parser';
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_LEADS_PER_IMPORT = 500;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const authorRole = request.headers.get('x-author-role') || 'member';
-    const authorId = request.headers.get('x-author-id') || 'usr-system';
-    const authorName = request.headers.get('x-author-name') || 'Lead Import Engine';
-
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-
-    if (!file) {
-      return NextResponse.json(
-        { success: false, error: 'No file was provided in the upload request' },
-        { status: 400 }
-      );
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: member ? 403 : 401 });
     }
 
-    const filename = file.name || 'imported_leads.csv';
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    if (buffer.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'The uploaded file is empty (0 bytes)' },
-        { status: 400 }
-      );
-    }
-
-    // Parse records using the multi-format lead parser
-    const parseResult = await parseUploadedLeadFile(buffer, filename, file.type);
-
-    if (!parseResult.leads || parseResult.leads.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            parseResult.warnings.length > 0
-              ? parseResult.warnings.join('; ')
-              : 'Unable to extract any valid lead records from the file. Ensure the file contains name or email columns.',
-        },
-        { status: 422 }
-      );
-    }
-
-    const now = new Date().toISOString();
-    const createdLeads: StudioLead[] = [];
-    const detectedNewColumns: Record<string, string> = {};
-
-    parseResult.leads.forEach((item, index) => {
-      const leadId = `lead-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 6)}`;
-      const leadRecord: StudioLead = {
-        id: leadId,
-        name: item.name?.trim() || `Imported Lead #${index + 1}`,
-        email: item.email?.trim() || '',
-        phone: item.phone?.trim() || '',
-        company: item.company?.trim() || '',
-        value: typeof item.value === 'number' ? item.value : 0,
-        status: item.status || 'NEW',
-        source: item.source || 'MANUAL',
-        sourceDetails: item.sourceDetails || `Imported from ${filename}`,
-        assignedMemberId: item.assignedMemberId || authorId,
-        assignedMemberName: item.assignedMemberName || authorName,
-        customerId: '',
-        convertedProjectId: '',
-        notes: item.notes?.trim() || '',
-        customFields: item.customFields || {},
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Collect any custom fields to ensure columns exist in dynamic schema
-      if (item.customFields) {
-        Object.keys(item.customFields).forEach((key) => {
-          if (!detectedNewColumns[key]) {
-            detectedNewColumns[key] = key.replace(/_/g, ' ').toUpperCase();
-          }
-        });
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      if (body.action !== 'commit' || !Array.isArray(body.leads)) {
+        return NextResponse.json({ success: false, error: 'A valid import confirmation is required' }, { status: 400 });
+      }
+      if (body.leads.length === 0 || body.leads.length > MAX_LEADS_PER_IMPORT) {
+        return NextResponse.json(
+          { success: false, error: `Confirm between 1 and ${MAX_LEADS_PER_IMPORT} leads at a time` },
+          { status: 400 }
+        );
       }
 
-      createdLeads.push(leadRecord);
-    });
+      const now = new Date().toISOString();
+      const createdLeads: StudioLead[] = body.leads.flatMap((candidate: unknown) => {
+        if (!isRecord(candidate)) return [];
+        const name = typeof candidate.name === 'string' ? candidate.name.trim().slice(0, 160) : '';
+        const email = typeof candidate.email === 'string' ? candidate.email.trim().slice(0, 254) : '';
+        if (!name && !email) return [];
 
-    // If MongoDB is connected, persist leads and any new columns directly
-    if (isMongoConfigured()) {
-      const db = await getDb();
-      const leadsCol = db.collection(MONGO_COLLECTIONS.LEADS);
-      const columnsCol = db.collection(MONGO_COLLECTIONS.LEAD_COLUMNS);
+        const rawCustomFields = isRecord(candidate.customFields) ? candidate.customFields : {};
+        const customFields = Object.fromEntries(
+          Object.entries(rawCustomFields)
+            .filter(([key, value]) => /^[a-zA-Z0-9_-]{1,80}$/.test(key) && ['string', 'number', 'boolean'].includes(typeof value))
+            .slice(0, 80)
+            .map(([key, value]) => [key, typeof value === 'string' ? value.slice(0, 2000) : value])
+        );
 
-      // Insert leads batch
-      if (createdLeads.length > 0) {
-        await leadsCol.insertMany(createdLeads);
+        const statusValues = ['NEW', 'CONTACTED', 'FOLLOW_UP', 'INTERESTED', 'DEAL_WON', 'LOST'] as const;
+        const sourceValues = ['WEBSITE', 'MANUAL', 'WEBHOOK', 'META_ADS', 'GOOGLE_ADS', 'REFERRAL', 'OUTREACH'] as const;
+        const lead: StudioLead = {
+          id: `lead-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          name: name || email.split('@')[0],
+          email,
+          phone: typeof candidate.phone === 'string' ? candidate.phone.slice(0, 80) : '',
+          company: typeof candidate.company === 'string' ? candidate.company.slice(0, 160) : '',
+          value: typeof candidate.value === 'number' && Number.isFinite(candidate.value) ? candidate.value : 0,
+          status: statusValues.includes(candidate.status as typeof statusValues[number])
+            ? candidate.status as StudioLead['status']
+            : 'NEW',
+          source: sourceValues.includes(candidate.source as typeof sourceValues[number])
+            ? candidate.source as StudioLead['source']
+            : 'MANUAL',
+          sourceDetails: typeof candidate.sourceDetails === 'string'
+            ? candidate.sourceDetails.slice(0, 500)
+            : 'Imported from PDF',
+          assignedMemberId: member.id,
+          assignedMemberName: member.name,
+          customerId: '',
+          convertedProjectId: '',
+          notes: typeof candidate.notes === 'string' ? candidate.notes.slice(0, 5000) : '',
+          customFields,
+          createdAt: now,
+          updatedAt: now,
+        };
+        return [lead];
+      });
+
+      if (!createdLeads.length) {
+        return NextResponse.json({ success: false, error: 'No valid lead records were selected for import' }, { status: 422 });
       }
 
-      // Check if new custom columns need to be added to dynamic sheet schema
-      const existingCols = await columnsCol.find({}).toArray();
-      const existingColIds = new Set(
-        existingCols.length > 0
-          ? existingCols.map((c) => c.id)
-          : DEFAULT_LEAD_COLUMNS.map((c) => c.id)
-      );
-
-      const newColumnRecords: LeadColumn[] = [];
-      let currentOrder = existingCols.length || DEFAULT_LEAD_COLUMNS.length;
-
-      for (const [colId, colLabel] of Object.entries(detectedNewColumns)) {
-        if (!existingColIds.has(colId)) {
-          currentOrder++;
-          newColumnRecords.push({
-            id: colId,
-            label: colLabel,
-            type: 'text',
-            isSystem: false,
-            visible: true,
-            order: currentOrder,
-            width: '160px',
-          });
+      const customColumnLabels = new Map<string, string>();
+      for (const lead of createdLeads) {
+        for (const key of Object.keys(lead.customFields || {})) {
+          customColumnLabels.set(key, key.replace(/_/g, ' ').toUpperCase());
         }
       }
 
-      if (newColumnRecords.length > 0) {
-        await columnsCol.insertMany(newColumnRecords);
+      let newColumns: LeadColumn[] = [];
+      if (isMongoConfigured()) {
+        const db = await getDb();
+        const columnsCol = db.collection(MONGO_COLLECTIONS.LEAD_COLUMNS);
+        const savedColumns = await columnsCol.find({}).toArray();
+        const existingIds = new Set([
+          ...DEFAULT_LEAD_COLUMNS.map((column) => column.id),
+          ...savedColumns.map((column) => String(column.id)),
+        ]);
+        let order = Math.max(
+          DEFAULT_LEAD_COLUMNS.length,
+          ...savedColumns.map((column) => Number(column.order) || 0)
+        );
+        newColumns = [...customColumnLabels.entries()]
+          .filter(([id]) => !existingIds.has(id))
+          .map(([id, label]) => ({
+            id,
+            label,
+            type: 'text' as const,
+            isSystem: false,
+            visible: true,
+            order: ++order,
+            width: '160px',
+          }));
+
+        if (newColumns.length) await columnsCol.insertMany(newColumns);
+        await db.collection(MONGO_COLLECTIONS.LEADS).insertMany(createdLeads);
       }
 
       return NextResponse.json({
         success: true,
-        message: `Successfully imported and parsed ${createdLeads.length} leads from ${filename}`,
+        stage: 'complete',
+        message: `Added ${createdLeads.length} confirmed leads`,
         count: createdLeads.length,
         leads: createdLeads,
-        detectedType: parseResult.detectedType,
-        warnings: parseResult.warnings,
-        newColumns: newColumnRecords,
+        newColumns,
+        fallback: !isMongoConfigured(),
       });
     }
 
-    // Fallback response for LocalStorage environments
+    const contentLength = Number(request.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > MAX_FILE_BYTES) {
+      return NextResponse.json({ success: false, error: 'The uploaded file exceeds the 10 MB limit' }, { status: 413 });
+    }
+
+    const formData = await request.formData();
+    const file = formData.get('file');
+    if (!(file instanceof File)) {
+      return NextResponse.json({ success: false, error: 'No file was provided in the upload request' }, { status: 400 });
+    }
+    if (file.size === 0) {
+      return NextResponse.json({ success: false, error: 'The uploaded file is empty (0 bytes)' }, { status: 400 });
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      return NextResponse.json({ success: false, error: 'The uploaded file exceeds the 10 MB limit' }, { status: 413 });
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const rawColumns = formData.get('columns');
+    let columns: LeadColumn[] = DEFAULT_LEAD_COLUMNS;
+    if (typeof rawColumns === 'string') {
+      try {
+        const parsedColumns: unknown = JSON.parse(rawColumns);
+        if (Array.isArray(parsedColumns)) {
+          const validColumns = parsedColumns.filter(
+            (column: unknown): column is LeadColumn =>
+              Boolean(
+                column &&
+                  typeof column === 'object' &&
+                  typeof (column as LeadColumn).id === 'string' &&
+                  typeof (column as LeadColumn).label === 'string'
+              )
+          );
+          if (validColumns.length) columns = validColumns;
+        }
+      } catch {
+        return NextResponse.json({ success: false, error: 'Invalid lead column schema' }, { status: 400 });
+      }
+    }
+    if (isMongoConfigured()) {
+      const db = await getDb();
+      const savedColumns = await db
+        .collection(MONGO_COLLECTIONS.LEAD_COLUMNS)
+        .find({})
+        .sort({ order: 1 })
+        .toArray();
+      if (savedColumns.length) columns = savedColumns as unknown as LeadColumn[];
+    }
+    const parseResult = await parseUploadedLeadFile(buffer, file.name, file.type, columns);
+    if (!parseResult.leads.length) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: parseResult.warnings.join('; ') || 'No leads were recognized. Use the generated PDF schema prompt and try again.',
+        },
+        { status: 422 }
+      );
+    }
+    if (parseResult.leads.length > MAX_LEADS_PER_IMPORT) {
+      return NextResponse.json(
+        { success: false, error: `The file contains ${parseResult.leads.length} leads; the maximum per import is ${MAX_LEADS_PER_IMPORT}` },
+        { status: 422 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Parsed ${createdLeads.length} leads from ${filename} (Local Store)`,
-      count: createdLeads.length,
-      leads: createdLeads,
+      stage: 'preview',
+      message: `Found ${parseResult.leads.length} leads in ${file.name}. Nothing has been added yet.`,
+      count: parseResult.leads.length,
+      leads: parseResult.leads,
       detectedType: parseResult.detectedType,
       warnings: parseResult.warnings,
-      fallback: true,
     });
-  } catch (error: any) {
-    console.error('Lead Import Error:', error);
+  } catch (error) {
+    console.error('Lead import error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error?.message || 'Internal server error while parsing lead file',
-      },
+      { success: false, error: error instanceof Error ? error.message : 'Unable to process the lead import.' },
       { status: 500 }
     );
   }

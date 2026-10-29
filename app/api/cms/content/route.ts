@@ -5,46 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { CMS_SEED_DEFAULTS } from '@/lib/cms';
 import { CMSSectionKey } from '@/lib/cms-types';
-
-async function verifyAdminOrEditor(request: NextRequest): Promise<{ authorized: boolean; user?: any; error?: string }> {
-  const authorId = request.headers.get('x-author-id');
-  const authorRole = request.headers.get('x-author-role');
-
-  if (!authorId && !authorRole) {
-    return { authorized: false, error: 'UNAUTHORIZED // CREDENTIALS REQUIRED' };
-  }
-
-  // If role header is admin or working_member, check database if configured
-  if (isMongoConfigured()) {
-    try {
-      const db = await getDb();
-      const member = await db.collection(MONGO_COLLECTIONS.MEMBERS).findOne({
-        $or: [{ id: authorId }, { email: authorId }],
-      });
-      if (member) {
-        // Admin or manager can write CMS
-        if (member.role === 'admin' || member.role === 'manager') {
-          return { authorized: true, user: member };
-        }
-        return { authorized: false, error: 'ACCESS DENIED // INSUFFICIENT CLEARANCE LEVEL' };
-      }
-    } catch {
-      // Fallback to role header if DB temporarily unreachable
-    }
-  }
-
-  // Fallback: If authorRole is admin or manager
-  if (authorRole === 'admin' || authorRole === 'manager') {
-    return { authorized: true };
-  }
-
-  // Default: allow verified studio admins
-  if (authorId?.includes('usr-01') || authorId?.includes('admin')) {
-    return { authorized: true };
-  }
-
-  return { authorized: false, error: 'FORBIDDEN // CMS ACCESS RESTRICTED TO ADMIN CLEARANCE' };
-}
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 // ─── GET: Read section content ────────────────────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -52,37 +13,56 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const section = searchParams.get('section') as CMSSectionKey | null;
     const mode = searchParams.get('mode') || 'published'; // 'published' or 'draft'
+    if (mode !== 'published' && mode !== 'draft') {
+      return NextResponse.json({ success: false, error: 'Invalid CMS mode' }, { status: 400 });
+    }
+    if (mode === 'draft') {
+      const member = await getAuthenticatedMember(request);
+      if (!hasAnyRole(member, ['admin', 'manager'])) {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     if (!isMongoConfigured()) {
       if (section && CMS_SEED_DEFAULTS[section]) {
-        return NextResponse.json({ success: true, data: CMS_SEED_DEFAULTS[section], fallback: true });
+        return NextResponse.json({ success: true, data: CMS_SEED_DEFAULTS[section], draftSections: [], fallback: true });
       }
-      return NextResponse.json({ success: true, data: CMS_SEED_DEFAULTS, fallback: true });
+      return NextResponse.json({ success: true, data: CMS_SEED_DEFAULTS, draftSections: [], fallback: true });
     }
 
     const db = await getDb();
     const collection = db.collection(MONGO_COLLECTIONS.CMS_SECTIONS);
 
+    if (section && !Object.hasOwn(CMS_SEED_DEFAULTS, section)) {
+      return NextResponse.json({ success: false, error: 'Unknown CMS section' }, { status: 404 });
+    }
+
     if (section) {
       const record = await collection.findOne({ sectionKey: section });
       if (record) {
         const payload = mode === 'draft' ? (record.draftData || record.publishedData) : record.publishedData;
-        return NextResponse.json({ success: true, data: payload || CMS_SEED_DEFAULTS[section] });
+        return NextResponse.json({
+          success: true,
+          data: payload || CMS_SEED_DEFAULTS[section],
+          draftSections: record.status === 'DRAFT_CHANGED' ? [section] : [],
+        });
       }
-      return NextResponse.json({ success: true, data: CMS_SEED_DEFAULTS[section] });
+      return NextResponse.json({ success: true, data: CMS_SEED_DEFAULTS[section], draftSections: [] });
     }
 
     // Return all sections
     const allRecords = await collection.find({}).toArray();
     const result: Record<string, unknown> = { ...CMS_SEED_DEFAULTS };
+    const draftSections: CMSSectionKey[] = [];
 
     allRecords.forEach((rec) => {
       if (rec.sectionKey) {
         result[rec.sectionKey] = mode === 'draft' ? (rec.draftData || rec.publishedData) : rec.publishedData;
+        if (rec.status === 'DRAFT_CHANGED') draftSections.push(rec.sectionKey);
       }
     });
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result, draftSections });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -91,23 +71,30 @@ export async function GET(request: NextRequest) {
 // ─── POST: Save draft or Publish section (Server-Side Auth Required) ──────────
 export async function POST(request: NextRequest) {
   try {
-    // 1. Enforce Server-Side Authorization
-    const auth = await verifyAdminOrEditor(request);
-    if (!auth.authorized) {
-      return NextResponse.json({ success: false, error: auth.error || 'UNAUTHORIZED' }, { status: 403 });
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden: admin or manager access required' }, { status: 403 });
     }
 
     const body = await request.json();
-    const sectionKey = body.sectionKey;
+    const rawSectionKey: unknown = body.sectionKey;
     const data = body.data ?? body.content;
     const mode = body.mode ?? (body.action === 'publish' ? 'publish' : 'draft');
 
-    if (!sectionKey || !data) {
-      return NextResponse.json({ success: false, error: 'Missing sectionKey or data' }, { status: 400 });
+    if (
+      typeof rawSectionKey !== 'string' ||
+      !Object.hasOwn(CMS_SEED_DEFAULTS, rawSectionKey) ||
+      data === undefined
+    ) {
+      return NextResponse.json({ success: false, error: 'A valid sectionKey and data are required' }, { status: 400 });
+    }
+    const sectionKey = rawSectionKey as CMSSectionKey;
+    if (!['draft', 'publish', 'discard'].includes(mode)) {
+      return NextResponse.json({ success: false, error: 'Invalid CMS mode' }, { status: 400 });
     }
 
-    const authorId = request.headers.get('x-author-id') || 'usr-admin';
-    const authorName = request.headers.get('x-author-name') || 'Studio Admin';
+    const authorId = member.id;
+    const authorName = member.name;
 
     if (!isMongoConfigured()) {
       return NextResponse.json({
@@ -123,8 +110,90 @@ export async function POST(request: NextRequest) {
     const auditCol = db.collection(MONGO_COLLECTIONS.CMS_AUDIT_LOG);
 
     const now = new Date().toISOString();
+    if (mode === 'discard') {
+      const record = await sectionsCol.findOne({ sectionKey });
+      await sectionsCol.updateOne(
+        { sectionKey },
+        {
+          $set: {
+            sectionKey,
+            draftData: record?.publishedData || CMS_SEED_DEFAULTS[sectionKey],
+            status: 'PUBLISHED',
+            lastEditedAt: now,
+            lastEditedBy: authorName,
+          },
+        },
+        { upsert: true }
+      );
+      await auditCol.insertOne({
+        id: `aud-${Date.now().toString(36)}`,
+        timestamp: now,
+        authorId,
+        authorName,
+        action: 'DISCARD_DRAFT',
+        sectionKey,
+        summary: `Discarded draft for section ${sectionKey.toUpperCase()}`,
+      });
+      return NextResponse.json({ success: true, sectionKey, mode, timestamp: now });
+    }
 
     if (mode === 'publish') {
+      if (sectionKey === 'featured_work' && data && typeof data === 'object' && 'projects' in data) {
+        const projects = (data as { projects?: Array<Record<string, unknown>> }).projects || [];
+        const linkedProjects: Array<Record<string, unknown>> = [];
+        const projectsCol = db.collection(MONGO_COLLECTIONS.PROJECTS);
+
+        for (const project of projects) {
+          if (typeof project.projectId !== 'string') continue;
+          const internalProject = await projectsCol.findOne({ id: project.projectId });
+          if (internalProject?.status === 'COMPLETED') {
+            linkedProjects.push(project);
+          }
+        }
+
+        const existing = await sectionsCol.findOne({ sectionKey: 'featured_work' });
+        const nextIds = new Set(linkedProjects.map((project) => String(project.projectId)));
+        const previousProjects = (existing?.publishedData?.projects || []) as Array<{ projectId?: string }>;
+        for (const previous of previousProjects) {
+          if (previous.projectId && !nextIds.has(previous.projectId)) {
+            await db.collection(MONGO_COLLECTIONS.FEATURED_PROJECTS).updateOne(
+              { projectId: previous.projectId },
+              { $set: { isFeatured: false, publicVisibility: false, updatedAt: now } }
+            );
+          }
+        }
+
+        for (const project of linkedProjects) {
+          const publicOverrides = {
+            title: project.title,
+            tagline: project.tagline,
+            category: project.category,
+            tags: project.tags,
+            problem: project.problem,
+            solution: project.solution,
+            result: project.result,
+            techStack: project.techStack,
+            coverImage: project.coverImage,
+            liveUrl: project.liveUrl,
+            allowIframe: project.allowIframe,
+          };
+          await db.collection(MONGO_COLLECTIONS.FEATURED_PROJECTS).updateOne(
+            { projectId: project.projectId },
+            {
+              $set: {
+                projectId: project.projectId,
+                isFeatured: Boolean(project.featured),
+                publicVisibility: Boolean(project.featured),
+                order: Number(project.order) || 1,
+                publicOverrides,
+                updatedAt: now,
+              },
+            },
+            { upsert: true }
+          );
+        }
+      }
+
       // 1. Update published and clear draft differences
       await sectionsCol.updateOne(
         { sectionKey },
@@ -166,7 +235,7 @@ export async function POST(request: NextRequest) {
         sectionKey,
         summary: `Published section ${sectionKey.toUpperCase()}`,
       });
-    } else {
+    } else if (mode === 'draft') {
       // Save as draft
       await sectionsCol.updateOne(
         { sectionKey },
@@ -199,4 +268,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

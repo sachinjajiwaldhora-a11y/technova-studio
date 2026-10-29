@@ -26,11 +26,12 @@ export async function fetchFromMongo<T>(collection: string): Promise<T[] | null>
  */
 export async function saveToMongo<T extends { id?: string }>(
   collection: string,
-  item: T
+  item: T,
+  method: 'POST' | 'PUT' = 'POST'
 ): Promise<boolean> {
   try {
     const res = await fetch(`/api/data/${collection}`, {
-      method: 'POST',
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(item),
     });

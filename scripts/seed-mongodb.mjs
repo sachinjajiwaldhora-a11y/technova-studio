@@ -3,8 +3,15 @@
 // Run with: node scripts/seed-mongodb.mjs
 
 import { MongoClient } from 'mongodb';
+import { randomBytes, scryptSync } from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
+
+function hashPassword(password) {
+  const salt = randomBytes(16);
+  const key = scryptSync(password, salt, 64);
+  return `scrypt-v1$${salt.toString('base64url')}$${key.toString('base64url')}`;
+}
 
 // Parse .env.local and .env manually if dotenv is not installed
 function loadEnv() {
@@ -251,24 +258,198 @@ async function runSeed() {
 
     const membersCol = db.collection('studio_members');
     for (const m of SEED_MEMBERS) {
-      await membersCol.replaceOne({ id: m.id }, m, { upsert: true });
+      const { password, ...safeMember } = m;
+      await membersCol.updateOne(
+        { id: m.id },
+        { $setOnInsert: { ...safeMember, passwordHash: hashPassword(password) } },
+        { upsert: true }
+      );
     }
     await membersCol.createIndex({ email: 1 }, { unique: true }).catch(() => {});
     console.log(`✓ Seeded ${SEED_MEMBERS.length} studio_members`);
 
     const projectsCol = db.collection('studio_projects');
     for (const p of SEED_PROJECTS) {
-      await projectsCol.replaceOne({ id: p.id }, p, { upsert: true });
+      await projectsCol.updateOne({ id: p.id }, { $setOnInsert: p }, { upsert: true });
     }
     await projectsCol.createIndex({ trackingCode: 1 }, { sparse: true }).catch(() => {});
     console.log(`✓ Seeded ${SEED_PROJECTS.length} studio_projects`);
 
     const inqCol = db.collection('studio_inquiries');
     for (const inq of SEED_INQUIRIES) {
-      await inqCol.replaceOne({ id: inq.id }, inq, { upsert: true });
+      await inqCol.updateOne({ id: inq.id }, { $setOnInsert: inq }, { upsert: true });
     }
     await inqCol.createIndex({ trackingCode: 1 }, { sparse: true }).catch(() => {});
     console.log(`✓ Seeded ${SEED_INQUIRIES.length} studio_inquiries`);
+
+    // 4. Dedicated Leads Pipeline
+    const SEED_LEADS = [
+      {
+        id: 'lead-101',
+        name: 'Marcus Vance',
+        email: 'm.vance@vanguard-robotics.io',
+        phone: '+1 (555) 234-8901',
+        company: 'Vanguard Robotics',
+        value: 65000,
+        status: 'INTERESTED',
+        source: 'WEBSITE',
+        sourceDetails: 'Hero CTA // 3D Interactive Showcase',
+        assignedMemberId: 'usr-01',
+        assignedMemberName: 'Sachin (Admin)',
+        notes: 'Requires 120 FPS WebGL spatial digital twin for enterprise robotics line.',
+        createdAt: '2026-10-15T09:30:00Z',
+        updatedAt: '2026-10-20T14:15:00Z',
+      },
+      {
+        id: 'lead-102',
+        name: 'Elena Rostova',
+        email: 'elena@solaris-defense.com',
+        phone: '+1 (555) 987-6543',
+        company: 'Solaris Defense Labs',
+        value: 120000,
+        status: 'DEAL_WON',
+        source: 'WEBHOOK',
+        sourceDetails: 'Webhook // Enterprise Inbound Integration',
+        assignedMemberId: 'usr-01b',
+        assignedMemberName: 'Anuj (Admin)',
+        customerId: 'CUST-2026-001',
+        convertedProjectId: 'prj-001',
+        convertedAt: '2026-10-24T11:00:00Z',
+        notes: 'Signed deal for orbital command console UI. Converted to live project.',
+        createdAt: '2026-10-18T16:45:00Z',
+        updatedAt: '2026-10-24T11:00:00Z',
+      },
+      {
+        id: 'lead-103',
+        name: 'Tariq Al-Mansoor',
+        email: 'tariq@hyperion-ventures.ae',
+        phone: '+971 50 123 4567',
+        company: 'Hyperion Ventures',
+        value: 45000,
+        status: 'CONTACTED',
+        source: 'META_ADS',
+        sourceDetails: 'Campaign: AI Systems & Design Q4',
+        assignedMemberId: 'usr-02',
+        assignedMemberName: 'Dev Sharma',
+        notes: 'Pitch deck sent. Technical follow-up scheduled.',
+        createdAt: '2026-10-22T08:10:00Z',
+        updatedAt: '2026-10-25T10:00:00Z',
+      },
+      {
+        id: 'lead-104',
+        name: 'Sarah Chen',
+        email: 'sarah.c@quantumbit.capital',
+        phone: '+1 (555) 345-6789',
+        company: 'QuantumBit Capital',
+        value: 85000,
+        status: 'NEW',
+        source: 'WEBHOOK',
+        sourceDetails: 'Partner API Webhook Relay',
+        assignedMemberId: 'usr-01',
+        assignedMemberName: 'Sachin (Admin)',
+        notes: 'High-frequency algorithmic trading analytics dashboard scoping.',
+        createdAt: '2026-10-28T12:00:00Z',
+        updatedAt: '2026-10-28T12:00:00Z',
+      },
+    ];
+
+    const leadsCol = db.collection('studio_leads');
+    for (const lead of SEED_LEADS) {
+      await leadsCol.updateOne({ id: lead.id }, { $setOnInsert: lead }, { upsert: true });
+    }
+    await leadsCol.createIndex({ email: 1 }).catch(() => {});
+    await leadsCol.createIndex({ status: 1 }).catch(() => {});
+    console.log(`✓ Seeded ${SEED_LEADS.length} studio_leads`);
+
+    // 5. Studio Customers
+    const SEED_CUSTOMERS = [
+      {
+        id: 'CUST-2026-001',
+        name: 'Elena Rostova',
+        email: 'elena@solaris-defense.com',
+        phone: '+1 (555) 987-6543',
+        company: 'Solaris Defense Labs',
+        firstLeadId: 'lead-102',
+        projectIds: ['prj-001'],
+        totalLifetimeValue: 120000,
+        status: 'ACTIVE_CLIENT',
+        createdAt: '2026-10-24T11:00:00Z',
+        updatedAt: '2026-10-24T11:00:00Z',
+      },
+    ];
+
+    const custCol = db.collection('studio_customers');
+    for (const cust of SEED_CUSTOMERS) {
+      await custCol.updateOne({ id: cust.id }, { $setOnInsert: cust }, { upsert: true });
+    }
+    await custCol.createIndex({ id: 1 }, { unique: true }).catch(() => {});
+    console.log(`✓ Seeded ${SEED_CUSTOMERS.length} studio_customers`);
+
+    // 6. Studio Velocity Targets
+    const DEFAULT_TARGETS = [
+      {
+        id: 'tgt-revenue',
+        title: 'Monthly Revenue Pipeline',
+        metric: 'REVENUE',
+        targetValue: 250000,
+        period: 'MONTHLY',
+        unit: '$',
+        color: 'from-emerald-500 to-cyan-500',
+      },
+      {
+        id: 'tgt-deals',
+        title: 'Deals Won (Monthly)',
+        metric: 'DEALS_WON',
+        targetValue: 8,
+        period: 'MONTHLY',
+        unit: '#',
+        color: 'from-violet-500 to-pink-500',
+      },
+      {
+        id: 'tgt-leads',
+        title: 'Leads Contacted',
+        metric: 'LEADS_CONTACTED',
+        targetValue: 25,
+        period: 'MONTHLY',
+        unit: '#',
+        color: 'from-cyan-500 to-blue-500',
+      },
+      {
+        id: 'tgt-projects',
+        title: 'Flagship Deliveries',
+        metric: 'PROJECTS_DELIVERED',
+        targetValue: 6,
+        period: 'QUARTERLY',
+        unit: '#',
+        color: 'from-amber-500 to-orange-500',
+      },
+    ];
+
+    const targetsCol = db.collection('studio_targets');
+    for (const target of DEFAULT_TARGETS) {
+      await targetsCol.updateOne({ id: target.id }, { $setOnInsert: target }, { upsert: true });
+    }
+    console.log(`✓ Seeded ${DEFAULT_TARGETS.length} studio_targets`);
+
+    // 7. Lead Columns Schema
+    const DEFAULT_LEAD_COLUMNS = [
+      { id: 'name', label: 'Lead Contact', type: 'text', isSystem: true, visible: true, order: 1, width: '180px' },
+      { id: 'company', label: 'Company / Org', type: 'text', isSystem: true, visible: true, order: 2, width: '160px' },
+      { id: 'status', label: 'Stage Status', type: 'select', options: ['NEW', 'CONTACTED', 'FOLLOW_UP', 'INTERESTED', 'DEAL_WON', 'LOST'], isSystem: true, visible: true, order: 3, width: '140px' },
+      { id: 'source', label: 'Lead Source', type: 'select', options: ['WEBSITE', 'MANUAL', 'WEBHOOK', 'META_ADS', 'GOOGLE_ADS', 'REFERRAL', 'OUTREACH'], isSystem: true, visible: true, order: 4, width: '130px' },
+      { id: 'value', label: 'Deal Value ($)', type: 'currency', isSystem: true, visible: true, order: 5, width: '130px' },
+      { id: 'assignedMemberName', label: 'Assigned Specialist', type: 'text', isSystem: true, visible: true, order: 6, width: '160px' },
+      { id: 'email', label: 'Contact Email', type: 'email', isSystem: true, visible: true, order: 7, width: '190px' },
+      { id: 'phone', label: 'Phone Number', type: 'phone', isSystem: true, visible: true, order: 8, width: '140px' },
+      { id: 'customerId', label: 'Customer ID', type: 'text', isSystem: true, visible: true, order: 9, width: '140px' },
+      { id: 'notes', label: 'Notes & Telemetry', type: 'text', isSystem: true, visible: true, order: 10, width: '220px' },
+    ];
+
+    const leadColsCol = db.collection('studio_lead_columns');
+    for (const col of DEFAULT_LEAD_COLUMNS) {
+      await leadColsCol.updateOne({ id: col.id }, { $setOnInsert: col }, { upsert: true });
+    }
+    console.log(`✓ Seeded ${DEFAULT_LEAD_COLUMNS.length} studio_lead_columns`);
 
     console.log('\n\x1b[32m[SUCCESS]\x1b[0m MongoDB successfully connected and seeded!');
   } catch (err) {

@@ -27,6 +27,7 @@ export default function StatusTrackerModal({
   const [searched, setSearched] = useState(false);
   const [matchedInquiry, setMatchedInquiry] = useState<ClientInquiry | null>(null);
   const [matchedProject, setMatchedProject] = useState<StudioProject | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [cachedSession, setCachedSession] = useState<{
     name?: string;
     email?: string;
@@ -62,11 +63,30 @@ export default function StatusTrackerModal({
 
   if (!isOpen) return null;
 
-  function performSearch(queryToUse?: string) {
-    const q = (queryToUse ?? searchQuery).trim().toLowerCase();
+  async function performSearch(queryToUse?: string) {
+    const rawQuery = (queryToUse ?? searchQuery).trim();
+    const q = rawQuery.toLowerCase();
     if (!q) return;
 
     setSearched(true);
+    setIsSearching(true);
+    setMatchedInquiry(null);
+    setMatchedProject(null);
+    try {
+      const response = await fetch(`/api/track?code=${encodeURIComponent(rawQuery)}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (!result.fallback) {
+          setMatchedInquiry(result.inquiry || null);
+          setMatchedProject(result.project || null);
+          setIsSearching(false);
+          return;
+        }
+      }
+    } catch {
+      // Offline demo mode continues with the browser cache below.
+    }
+
     const inquiries = getStore<ClientInquiry[]>(STORAGE_KEYS.INQUIRIES, SEED_INQUIRIES);
     const projects = getStore<StudioProject[]>(STORAGE_KEYS.PROJECTS, SEED_PROJECTS);
 
@@ -102,6 +122,7 @@ export default function StatusTrackerModal({
 
     setMatchedInquiry(foundInq || null);
     setMatchedProject(foundPrj || null);
+    setIsSearching(false);
   }
 
   // Calculate life-cycle step

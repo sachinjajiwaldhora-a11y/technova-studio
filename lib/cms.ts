@@ -603,7 +603,8 @@ export function discardDraftContent<K extends CMSSectionKey>(sectionKey: K): voi
  */
 export function revertToVersion(
   versionId: string,
-  author: { id: string; name: string }
+  author: { id: string; name: string },
+  syncToServer = true
 ): boolean {
   if (typeof window === 'undefined') return false;
 
@@ -627,7 +628,9 @@ export function revertToVersion(
     summary: `Reverted ${found.sectionKey.toUpperCase()} to snapshot v${found.versionNumber} (${found.timestamp.split('T')[0]}).`,
   });
 
-  syncSectionToApi(found.sectionKey, found.data, 'publish', author);
+  if (syncToServer) {
+    syncSectionToApi(found.sectionKey, found.data, 'publish', author);
+  }
   return true;
 }
 
@@ -676,4 +679,3 @@ async function syncSectionToApi(
     // Handled gracefully by local store
   }
 }
-

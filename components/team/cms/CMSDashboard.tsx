@@ -35,8 +35,14 @@ import {
   CMSVersion,
   CMSAuditLogEntry,
 } from '@/lib/cms-types';
-import { CMS_SEED_DEFAULTS } from '@/lib/cms';
-import { StudioMember, StudioProject } from '@/lib/store';
+import {
+  CMS_SEED_DEFAULTS,
+  CMS_STORAGE_KEYS,
+  getAuditLog,
+  getSectionVersions,
+  logAuditEntry,
+} from '@/lib/cms';
+import { StudioMember, StudioProject, getStore, setStore } from '@/lib/store';
 
 // Import Section Editors
 import HeroEditor from './sections/HeroEditor';
@@ -134,18 +140,34 @@ export default function CMSDashboard({
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Load published content from API
+  // Load editable content from the API, or local published/draft caches in demo mode.
   const loadContent = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/cms/content');
+      const res = await fetch('/api/cms/content?mode=draft');
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
-          setContent((prev: CMSDataDictionary) => ({
-            ...prev,
+          const localPublished = json.fallback
+            ? getStore<Partial<CMSDataDictionary>>(CMS_STORAGE_KEYS.PUBLISHED, {})
+            : {};
+          const localDrafts = json.fallback
+            ? getStore<Partial<CMSDataDictionary>>(CMS_STORAGE_KEYS.DRAFT, {})
+            : {};
+          setContent({
+            ...CMS_SEED_DEFAULTS,
             ...json.data,
-          }));
+            ...localPublished,
+            ...localDrafts,
+          });
+          setDraftStatus((previous) => {
+            const next = { ...previous };
+            for (const section of Object.keys(next) as CMSSectionKey[]) {
+              next[section] = Boolean(localDrafts[section]) ||
+                (json.draftSections || []).includes(section);
+            }
+            return next;
+          });
         }
       }
     } catch (err) {
@@ -194,6 +216,16 @@ export default function CMSDashboard({
         throw new Error(err.error || 'Failed to save draft');
       }
 
+      const drafts = getStore<Partial<CMSDataDictionary>>(CMS_STORAGE_KEYS.DRAFT, {});
+      setStore(CMS_STORAGE_KEYS.DRAFT, { ...drafts, [activeSection]: content[activeSection] });
+      logAuditEntry({
+        action: 'SAVE_DRAFT',
+        sectionKey: activeSection,
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        summary: `Saved draft edits for ${activeSection.toUpperCase()} section.`,
+      });
+      setDraftStatus((previous) => ({ ...previous, [activeSection]: true }));
       showToast(`Draft for ${activeSection.toUpperCase()} saved successfully.`, 'info');
     } catch (err: any) {
       showToast(err.message || 'Error saving draft', 'error');
@@ -231,6 +263,34 @@ export default function CMSDashboard({
         throw new Error(err.error || 'Failed to publish content');
       }
 
+      const published = getStore<Partial<CMSDataDictionary>>(CMS_STORAGE_KEYS.PUBLISHED, {});
+      setStore(CMS_STORAGE_KEYS.PUBLISHED, { ...published, [activeSection]: content[activeSection] });
+      const drafts = getStore<Partial<CMSDataDictionary>>(CMS_STORAGE_KEYS.DRAFT, {});
+      delete drafts[activeSection];
+      setStore(CMS_STORAGE_KEYS.DRAFT, drafts);
+      const existingVersions = getStore<CMSVersion[]>(CMS_STORAGE_KEYS.VERSIONS, []);
+      const versionNumber = existingVersions
+        .filter((version) => version.sectionKey === activeSection)
+        .reduce((latest, version) => Math.max(latest, version.versionNumber), 0) + 1;
+      const newVersion: CMSVersion = {
+        id: `ver-${Date.now()}-${versionNumber}`,
+        sectionKey: activeSection,
+        versionNumber,
+        data: content[activeSection],
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        timestamp: new Date().toISOString(),
+        summary: `Published version ${versionNumber} of ${activeSection.toUpperCase()}`,
+      };
+      setStore(CMS_STORAGE_KEYS.VERSIONS, [newVersion, ...existingVersions].slice(0, 100));
+      logAuditEntry({
+        action: 'PUBLISH',
+        sectionKey: activeSection,
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        summary: `Published live changes for ${activeSection.toUpperCase()} (v${versionNumber}).`,
+      });
+
       setDraftStatus((prev) => ({
         ...prev,
         [activeSection]: false,
@@ -247,7 +307,28 @@ export default function CMSDashboard({
   // Discard draft
   const handleDiscard = async () => {
     if (!confirm('Discard all unsaved edits for this section and reload live version?')) return;
-    await loadContent();
+    try {
+      const res = await fetch('/api/cms/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionKey: activeSection,
+          data: content[activeSection],
+          mode: 'discard',
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to discard draft');
+      }
+      const drafts = getStore<Partial<CMSDataDictionary>>(CMS_STORAGE_KEYS.DRAFT, {});
+      delete drafts[activeSection];
+      setStore(CMS_STORAGE_KEYS.DRAFT, drafts);
+      await loadContent();
+    } catch (err: any) {
+      showToast(err.message || 'Error discarding draft', 'error');
+      return;
+    }
     setDraftStatus((prev) => ({
       ...prev,
       [activeSection]: false,
@@ -261,7 +342,7 @@ export default function CMSDashboard({
       const res = await fetch(`/api/cms/versions?section=${activeSection}`);
       if (res.ok) {
         const json = await res.json();
-        setVersions(json.versions || json.data || []);
+        setVersions(json.fallback ? getSectionVersions(activeSection) : (json.versions || []));
       }
     } catch (err) {
       console.error('Failed to load version history:', err);
@@ -275,7 +356,7 @@ export default function CMSDashboard({
       const res = await fetch('/api/cms/audit');
       if (res.ok) {
         const json = await res.json();
-        setAuditLogs(json.logs || json.data || []);
+        setAuditLogs(json.fallback ? getAuditLog() : (json.logs || []));
       }
     } catch (err) {
       console.error('Failed to load audit logs:', err);

@@ -312,7 +312,7 @@ export interface CMSAuditLogEntry {
   timestamp: string;
   authorId: string;
   authorName: string;
-  action: 'SAVE_DRAFT' | 'PUBLISH' | 'REVERT_VERSION' | 'UPLOAD_MEDIA' | 'TOGGLE_FEATURED';
+  action: 'SAVE_DRAFT' | 'PUBLISH' | 'REVERT_VERSION' | 'UPLOAD_MEDIA' | 'TOGGLE_FEATURED' | 'DISCARD_DRAFT';
   sectionKey: CMSSectionKey | 'media' | 'projects';
   summary: string;
 }

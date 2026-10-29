@@ -4,16 +4,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
 import { CMSMediaItem } from '@/lib/cms-types';
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB limit
 
 export async function POST(request: NextRequest) {
   try {
-    const authorRole = request.headers.get('x-author-role');
-    const authorId = request.headers.get('x-author-id');
-    if (authorRole !== 'admin' && authorRole !== 'manager' && !authorId?.includes('admin')) {
-      return NextResponse.json({ success: false, error: 'UNAUTHORIZED // CLEARANCE REQUIRED' }, { status: 403 });
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const formData = await request.formData();
@@ -50,25 +50,21 @@ export async function POST(request: NextRequest) {
       sizeBytes: file.size,
       altText: altText || file.name.replace(/\.[^/.]+$/, ''),
       uploadedAt: new Date().toISOString(),
-      uploadedBy: request.headers.get('x-author-name') || 'Admin',
+      uploadedBy: member.name,
     };
 
     if (isMongoConfigured()) {
-      try {
-        const db = await getDb();
-        await db.collection(MONGO_COLLECTIONS.CMS_MEDIA).insertOne(mediaItem);
-        await db.collection(MONGO_COLLECTIONS.CMS_AUDIT_LOG).insertOne({
-          id: `aud-${Date.now().toString(36)}`,
-          timestamp: new Date().toISOString(),
-          authorId: authorId || 'admin',
-          authorName: request.headers.get('x-author-name') || 'Admin',
-          action: 'UPLOAD_MEDIA',
-          sectionKey: 'media',
-          summary: `Uploaded image ${file.name} (${Math.round(file.size / 1024)} KB)`,
-        });
-      } catch (dbErr) {
-        // Fallback returned cleanly
-      }
+      const db = await getDb();
+      await db.collection(MONGO_COLLECTIONS.CMS_MEDIA).insertOne(mediaItem);
+      await db.collection(MONGO_COLLECTIONS.CMS_AUDIT_LOG).insertOne({
+        id: `aud-${Date.now().toString(36)}`,
+        timestamp: new Date().toISOString(),
+        authorId: member.id,
+        authorName: member.name,
+        action: 'UPLOAD_MEDIA',
+        sectionKey: 'media',
+        summary: `Uploaded image ${file.name} (${Math.round(file.size / 1024)} KB)`,
+      });
     }
 
     return NextResponse.json({
@@ -79,4 +75,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

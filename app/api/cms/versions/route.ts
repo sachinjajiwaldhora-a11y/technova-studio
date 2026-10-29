@@ -3,9 +3,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb, isMongoConfigured, MONGO_COLLECTIONS } from '@/lib/mongodb';
+import { getAuthenticatedMember, hasAnyRole } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const section = searchParams.get('section') || searchParams.get('sectionKey');
 
@@ -30,11 +36,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authorRole = request.headers.get('x-author-role');
-    const authorId = request.headers.get('x-author-id');
-
-    if (authorRole !== 'admin' && authorRole !== 'manager' && !authorId?.includes('admin')) {
-      return NextResponse.json({ success: false, error: 'UNAUTHORIZED // CLEARANCE REQUIRED' }, { status: 403 });
+    const member = await getAuthenticatedMember(request);
+    if (!hasAnyRole(member, ['admin', 'manager'])) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const { versionId } = await request.json();
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest) {
           draftData: version.data,
           status: 'PUBLISHED',
           publishedAt: now,
-          publishedBy: `Reverted by ${request.headers.get('x-author-name') || 'Admin'}`,
+          publishedBy: `Reverted by ${member.name}`,
         },
       },
       { upsert: true }
@@ -70,8 +74,8 @@ export async function POST(request: NextRequest) {
     await db.collection(MONGO_COLLECTIONS.CMS_AUDIT_LOG).insertOne({
       id: `aud-${Date.now().toString(36)}`,
       timestamp: now,
-      authorId: authorId || 'admin',
-      authorName: request.headers.get('x-author-name') || 'Admin',
+      authorId: member.id,
+      authorName: member.name,
       action: 'REVERT_VERSION',
       sectionKey: version.sectionKey,
       summary: `Reverted ${version.sectionKey} to snapshot v${version.versionNumber}`,
@@ -82,4 +86,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

@@ -85,12 +85,14 @@ export default function BookingModal({
     'Direct Encrypted Audio Call',
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const timestamp = Date.now();
     const inqId = `inq-${timestamp.toString(36)}`;
-    const sessionCode = `NV-${activeMode === 'BRIEF' ? 'INQ' : 'CALL'}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const codeBytes = crypto.getRandomValues(new Uint8Array(12));
+    const codeToken = Array.from(codeBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const sessionCode = `NV-${activeMode === 'BRIEF' ? 'INQ' : 'CALL'}-${codeToken}`;
 
     const isBrief = activeMode === 'BRIEF';
     const parsedRevenue = parseInt((budgetRange || booking.minimumBudget || '25000').replace(/\D/g, '')) || 25000;
@@ -127,7 +129,7 @@ export default function BookingModal({
 
     // Also dispatch to MongoDB if available
     try {
-      saveToMongo('inquiries', newInquiry);
+      await saveToMongo('inquiries', newInquiry);
     } catch {
       // Safe fallback
     }
