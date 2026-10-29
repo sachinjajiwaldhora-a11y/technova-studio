@@ -98,3 +98,27 @@ Enforced across:
 - Navigation items in `DashboardShell.tsx`
 - Action buttons & controls in `LeadsTab.tsx` and `OverviewTab.tsx`
 - Server-side API validation in `app/api/leads/**` and `app/api/targets/**`.
+
+---
+
+## 6. File Upload & Multi-Format Lead Parser (CSV / Excel / PDF)
+Implemented batch ingestion in `LeadsTab.tsx` and backend parser engine in `lib/lead-parser.ts` & `app/api/leads/import/route.ts`.
+
+### Capabilities:
+1. **Spreadsheets (`.csv`, `.xlsx`, `.xls`)**:
+   - Parsed with `xlsx`.
+   - Header matching heuristics for `Name`, `Email`, `Phone`, `Company`, `Value`/`Budget`, `Status`, `Source`, `Notes`.
+   - Unknown headers automatically preserved in `customFields` and dynamically added to custom sheet columns.
+2. **PDF Documents (`.pdf`)**:
+   - Text extracted with `pdf-parse`.
+   - Multi-format layout recognition:
+     - Tabular pipe-delimited (`|`) or tab-delimited structures.
+     - Labeled dossier key-value blocks (`Name: ...`, `Email: ...`, `Value: ...`).
+     - Freeform contact cards with regex extraction.
+3. **Data Sanitization & Normalization**:
+   - Deal values: handles `$`, `,`, `k` (e.g. `120k` $\rightarrow$ `120000`), `M` (e.g. `1.5M` $\rightarrow$ `1500000`).
+   - Lifecycle status: maps synonyms (`Closed Won` $\rightarrow$ `DEAL_WON`, `Demo Scheduled` $\rightarrow$ `FOLLOW_UP`, etc.).
+4. **Database & UI Synchronization**:
+   - Ingested batch stored to `studio_leads` in MongoDB / local storage.
+   - Refreshes pipeline state immediately with extracted records preview.
+

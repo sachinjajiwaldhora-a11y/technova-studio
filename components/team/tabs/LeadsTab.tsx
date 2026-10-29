@@ -13,7 +13,8 @@ import {
   AlertCircle, ArrowRight, DollarSign, Calendar, Mail, Phone,
   Building2, User, Globe, Link as LinkIcon, Trash2, Edit3,
   ExternalLink, Sparkles, RefreshCw, ChevronDown, Check, X,
-  Shield, Code2, Copy, Rocket, Eye,
+  Shield, Code2, Copy, Rocket, Eye, UploadCloud, FileSpreadsheet,
+  FileText, File,
 } from 'lucide-react';
 
 interface LeadsTabProps {
@@ -72,8 +73,23 @@ export default function LeadsTab({
   const [convertModalLead, setConvertModalLead] = useState<StudioLead | null>(null);
   const [columnsModalOpen, setColumnsModalOpen] = useState(false);
   const [webhookModalOpen, setWebhookModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<StudioLead | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  // File Import State
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    message: string;
+    count: number;
+    detectedType: string;
+    warnings?: string[];
+    leads?: StudioLead[];
+  } | null>(null);
 
   // New Lead Form State
   const [newLeadForm, setNewLeadForm] = useState({
@@ -429,6 +445,65 @@ export default function LeadsTab({
     setStore(STORAGE_KEYS.LEAD_COLUMNS, updated);
   };
 
+  const handleImportSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!importFile) {
+      setImportError('Please select or drop a valid file (.csv, .xlsx, .xls, .pdf)');
+      return;
+    }
+
+    setImportLoading(true);
+    setImportError(null);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const res = await fetch('/api/leads/import', {
+        method: 'POST',
+        headers: {
+          'x-author-id': currentUser.id,
+          'x-author-name': currentUser.name,
+          'x-author-role': currentUser.role,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to parse and import lead file');
+      }
+
+      setImportResult({
+        success: true,
+        message: data.message,
+        count: data.count,
+        detectedType: data.detectedType,
+        warnings: data.warnings,
+        leads: data.leads,
+      });
+
+      // Synchronize with state & local store
+      if (data.leads && data.leads.length > 0) {
+        const mergedLeads = [...data.leads, ...leads];
+        onLeadsChange(mergedLeads);
+        setStore(STORAGE_KEYS.LEADS, mergedLeads);
+      }
+
+      if (data.newColumns && data.newColumns.length > 0) {
+        const mergedCols = [...columns, ...data.newColumns];
+        onColumnsChange(mergedCols);
+        setStore(STORAGE_KEYS.LEAD_COLUMNS, mergedCols);
+      }
+    } catch (err: any) {
+      setImportError(err.message || 'An error occurred while uploading file');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   const visibleColumns = columns.filter((c) => c.visible);
 
   return (
@@ -454,6 +529,22 @@ export default function LeadsTab({
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2">
+          {perms.canManageLeads && (
+            <button
+              type="button"
+              onClick={() => {
+                setImportModalOpen(true);
+                setImportResult(null);
+                setImportError(null);
+                setImportFile(null);
+              }}
+              className="px-3 py-2 rounded text-xs font-mono font-bold uppercase tracking-wider border portal-border bg-[var(--portal-surface,rgba(0,0,0,0.2))] text-[var(--portal-text,#ffffff)] hover:border-emerald-500 hover:text-emerald-400 flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <UploadCloud className="w-3.5 h-3.5 text-emerald-400" />
+              <span>IMPORT LEADS (CSV / EXCEL / PDF)</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setWebhookModalOpen(true)}
@@ -1332,6 +1423,310 @@ export default function LeadsTab({
           </div>
         </div>
       )}
+
+      {/* ─── MODAL: IMPORT LEADS (CSV / EXCEL / PDF) ───────────────────────── */}
+      {importModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-[var(--portal-bg,#0a0a0a)] border border-[var(--portal-border,#27272a)] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[var(--portal-border,#27272a)] bg-[var(--portal-surface,rgba(0,0,0,0.3))] flex items-center justify-between">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold uppercase tracking-widest">
+                    BATCH INGESTION
+                  </span>
+                  <span className="font-mono text-[9px] text-[var(--portal-text-muted,#71717a)] uppercase tracking-wider">
+                    AUTO-MAPPING ENGINE
+                  </span>
+                </div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-[var(--portal-text,#ffffff)] mt-1 flex items-center gap-2">
+                  <UploadCloud className="w-5 h-5 text-emerald-400" />
+                  IMPORT LEADS (CSV / EXCEL / PDF)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setImportModalOpen(false);
+                  setImportResult(null);
+                  setImportError(null);
+                  setImportFile(null);
+                }}
+                className="p-1.5 rounded-lg border border-[var(--portal-border,#27272a)] text-[var(--portal-text-muted,#71717a)] hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* Format Badges & Capabilities */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2.5 rounded-lg border border-[var(--portal-border,#27272a)] bg-[var(--portal-surface,rgba(255,255,255,0.02))] text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-bold text-emerald-400">
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    CSV SPREADSHEET
+                  </div>
+                  <p className="text-[10px] text-[var(--portal-text-muted,#71717a)] mt-0.5">.csv comma / tab delimited</p>
+                </div>
+                <div className="p-2.5 rounded-lg border border-[var(--portal-border,#27272a)] bg-[var(--portal-surface,rgba(255,255,255,0.02))] text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-bold text-cyan-400">
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    EXCEL WORKBOOK
+                  </div>
+                  <p className="text-[10px] text-[var(--portal-text-muted,#71717a)] mt-0.5">.xlsx, .xls spreadsheets</p>
+                </div>
+                <div className="p-2.5 rounded-lg border border-[var(--portal-border,#27272a)] bg-[var(--portal-surface,rgba(255,255,255,0.02))] text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-bold text-rose-400">
+                    <FileText className="w-3.5 h-3.5" />
+                    PDF DOCUMENT
+                  </div>
+                  <p className="text-[10px] text-[var(--portal-text-muted,#71717a)] mt-0.5">Tables, dossiers & lists</p>
+                </div>
+              </div>
+
+              {/* Drag and Drop Upload Zone */}
+              {!importResult && (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      setImportFile(e.dataTransfer.files[0]);
+                      setImportError(null);
+                    }
+                  }}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                    isDragging
+                      ? 'border-emerald-500 bg-emerald-500/10'
+                      : importFile
+                      ? 'border-emerald-500/60 bg-[var(--portal-surface,rgba(0,0,0,0.3))]'
+                      : 'border-[var(--portal-border,#27272a)] hover:border-emerald-500/40 bg-[var(--portal-surface,rgba(0,0,0,0.2))]'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    id="lead-file-input"
+                    accept=".csv, .xlsx, .xls, .pdf"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setImportFile(e.target.files[0]);
+                        setImportError(null);
+                      }
+                    }}
+                    className="hidden"
+                  />
+
+                  {importFile ? (
+                    <div className="space-y-3">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto">
+                        {importFile.name.endsWith('.pdf') ? (
+                          <FileText className="w-6 h-6 text-rose-400" />
+                        ) : (
+                          <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-mono text-sm font-bold text-[var(--portal-text,#ffffff)] truncate max-w-md mx-auto">
+                          {importFile.name}
+                        </p>
+                        <p className="font-mono text-[11px] text-[var(--portal-text-muted,#71717a)] mt-0.5">
+                          {(importFile.size / 1024).toFixed(1)} KB &bull;{' '}
+                          {importFile.name.endsWith('.pdf')
+                            ? 'PDF Document'
+                            : importFile.name.endsWith('.csv')
+                            ? 'CSV Data'
+                            : 'Excel Spreadsheet'}
+                        </p>
+                      </div>
+                      <label
+                        htmlFor="lead-file-input"
+                        className="inline-block font-mono text-[11px] text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        Choose a different file
+                      </label>
+                    </div>
+                  ) : (
+                    <label htmlFor="lead-file-input" className="cursor-pointer space-y-3 block">
+                      <div className="w-12 h-12 rounded-xl bg-[var(--portal-surface,rgba(255,255,255,0.03))] border border-[var(--portal-border,#27272a)] text-[var(--portal-text-muted,#71717a)] flex items-center justify-center mx-auto group-hover:text-emerald-400">
+                        <UploadCloud className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="font-mono text-sm font-bold text-[var(--portal-text,#ffffff)]">
+                          Drop your leads file here, or <span className="text-emerald-400 underline">browse</span>
+                        </p>
+                        <p className="font-mono text-[11px] text-[var(--portal-text-muted,#71717a)] mt-1">
+                          Supported extensions: .csv, .xlsx, .xls, .pdf (up to 20MB)
+                        </p>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {/* Auto-Mapping Info Card */}
+              <div className="p-4 rounded-lg border border-[var(--portal-border,#27272a)] bg-[var(--portal-surface,rgba(0,0,0,0.2))] space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-mono text-xs font-bold text-[var(--portal-text,#ffffff)] uppercase">
+                    Intelligent Auto-Mapping Schema
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--portal-text-muted,#71717a)] leading-relaxed">
+                  The parser automatically maps incoming columns to primary fields:{' '}
+                  <span className="text-zinc-300 font-mono">Name</span>,{' '}
+                  <span className="text-zinc-300 font-mono">Email</span>,{' '}
+                  <span className="text-zinc-300 font-mono">Phone</span>,{' '}
+                  <span className="text-zinc-300 font-mono">Company</span>,{' '}
+                  <span className="text-zinc-300 font-mono">Deal Value</span>,{' '}
+                  <span className="text-zinc-300 font-mono">Status</span>, and{' '}
+                  <span className="text-zinc-300 font-mono">Notes</span>. Any additional columns (e.g., industry, country, linkedin) are preserved and dynamically mapped into custom sheet columns.
+                </p>
+              </div>
+
+              {/* Error Message */}
+              {importError && (
+                <div className="p-3 rounded-lg border border-rose-500/40 bg-rose-950/20 text-rose-300 font-mono text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{importError}</span>
+                </div>
+              )}
+
+              {/* Success Result View */}
+              {importResult && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg border border-emerald-500/40 bg-emerald-950/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                        <span className="font-mono text-sm font-bold text-white uppercase">
+                          IMPORT COMPLETED SUCCESSFULLY
+                        </span>
+                      </div>
+                      <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold uppercase">
+                        DETECTED: {importResult.detectedType}
+                      </span>
+                    </div>
+                    <p className="font-mono text-xs text-emerald-200">
+                      {importResult.message} ({importResult.count} records loaded).
+                    </p>
+                    {importResult.warnings && importResult.warnings.length > 0 && (
+                      <div className="pt-2 border-t border-emerald-500/20 font-mono text-[11px] text-amber-300 space-y-0.5">
+                        {importResult.warnings.map((w, idx) => (
+                          <div key={idx}>&bull; {w}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preview Table of Imported Leads */}
+                  {importResult.leads && importResult.leads.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="font-mono text-[10px] text-[var(--portal-text-muted,#71717a)] uppercase tracking-wider">
+                        EXTRACTED RECORDS PREVIEW ({importResult.leads.length} LEADS)
+                      </span>
+                      <div className="max-h-48 overflow-y-auto rounded border border-[var(--portal-border,#27272a)] bg-black/40">
+                        <table className="w-full text-left font-mono text-[11px]">
+                          <thead className="border-b border-[var(--portal-border,#27272a)] text-zinc-400 text-[10px] uppercase bg-black/60 sticky top-0">
+                            <tr>
+                              <th className="py-1.5 px-3">Name</th>
+                              <th className="py-1.5 px-3">Email</th>
+                              <th className="py-1.5 px-3">Company</th>
+                              <th className="py-1.5 px-3">Value</th>
+                              <th className="py-1.5 px-3">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--portal-border,#27272a)]/40 text-zinc-300">
+                            {importResult.leads.slice(0, 10).map((l, idx) => (
+                              <tr key={idx} className="hover:bg-white/5">
+                                <td className="py-1.5 px-3 font-bold text-white truncate max-w-[120px]">{l.name}</td>
+                                <td className="py-1.5 px-3 truncate max-w-[140px] text-zinc-400">{l.email || '—'}</td>
+                                <td className="py-1.5 px-3 truncate max-w-[120px]">{l.company || '—'}</td>
+                                <td className="py-1.5 px-3 text-emerald-400 font-bold">${(l.value || 0).toLocaleString()}</td>
+                                <td className="py-1.5 px-3">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 uppercase">
+                                    {l.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {importResult.leads.length > 10 && (
+                        <p className="font-mono text-[10px] text-zinc-500 text-right">
+                          + {importResult.leads.length - 10} more leads imported to pipeline
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[var(--portal-border,#27272a)] bg-[var(--portal-surface,rgba(0,0,0,0.3))] flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setImportModalOpen(false);
+                  setImportResult(null);
+                  setImportError(null);
+                  setImportFile(null);
+                }}
+                className="px-4 py-2 border border-[var(--portal-border,#27272a)] rounded font-mono text-xs font-bold text-[var(--portal-text-muted,#71717a)] hover:text-white hover:bg-white/5 transition-colors"
+              >
+                {importResult ? 'CLOSE' : 'CANCEL'}
+              </button>
+
+              {importResult ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImportModalOpen(false);
+                    setImportResult(null);
+                    setImportError(null);
+                    setImportFile(null);
+                  }}
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black rounded font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>VIEW IN PIPELINE</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleImportSubmit()}
+                  disabled={!importFile || importLoading}
+                  className={`px-5 py-2 rounded font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-md ${
+                    !importFile || importLoading
+                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'
+                      : 'bg-emerald-500 hover:bg-emerald-400 text-black cursor-pointer'
+                  }`}
+                >
+                  {importLoading ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>PARSING & INGESTING...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-4 h-4" />
+                      <span>UPLOAD & PARSE LEADS</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
