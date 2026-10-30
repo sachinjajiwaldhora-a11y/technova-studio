@@ -354,6 +354,8 @@ export default function TeamDashboard() {
             projects={projects}
             inquiries={inquiries}
             members={members}
+            leads={leads}
+            customers={customers}
           />
         );
       case 'ANNOUNCEMENTS':

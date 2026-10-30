@@ -30,10 +30,11 @@ function resolveCollection(slug: string): string | null {
 }
 
 function buildDocFilter(id: string): Filter<Document> {
+  const filters: Filter<Document>[] = [{ id }, { email: id }];
   if (ObjectId.isValid(id) && id.length === 24) {
-    return { $or: [{ id }, { _id: new ObjectId(id) }] };
+    filters.push({ _id: new ObjectId(id) });
   }
-  return { id };
+  return { $or: filters };
 }
 
 function sanitizeDocument(doc: Document, canViewPrivate: boolean): Document {
@@ -404,6 +405,13 @@ export async function DELETE(
     if (!id) {
       return NextResponse.json(
         { success: false, error: 'Missing document id query param' },
+        { status: 400 }
+      );
+    }
+
+    if (collectionName === MONGO_COLLECTIONS.MEMBERS && (id === member.id || id === member.email)) {
+      return NextResponse.json(
+        { success: false, error: 'Cannot delete your own active administrator account' },
         { status: 400 }
       );
     }

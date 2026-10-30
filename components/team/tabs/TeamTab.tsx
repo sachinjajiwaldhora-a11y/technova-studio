@@ -224,10 +224,22 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
   }
 
   function removeMember(memberId: string) {
-    if (!perms.canOnboardMembers) return;
-    if (!confirm('Remove this member from the studio roster?')) return;
+    if (!perms.canOnboardMembers && currentUser.role !== 'admin') {
+      alert('You do not have permissions to remove team members.');
+      return;
+    }
+    const target = members.find((m) => m.id === memberId);
+    if (!target) return;
+    if (target.id === currentUser.id || target.email === currentUser.email) {
+      alert('You cannot delete your own logged-in administrator account.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to permanently remove "${target.name}" (${target.role.toUpperCase()}) from the studio roster and delete their MongoDB record? This action cannot be undone.`)) {
+      return;
+    }
     saveMembers(members.filter((m) => m.id !== memberId));
     if (expandedId === memberId) setExpandedId(null);
+    if (editingMember?.id === memberId) setEditingMember(null);
   }
 
   function resetPassword(memberId: string, newPwd: string) {
@@ -441,6 +453,7 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
           const canSeePrivate = isMe;
           const canSeeManagerNotes = perms.canReadManagerNotes;
           const canEditThisMember = perms.canEditMemberRoles || isMe;
+          const canDeleteThisMember = (perms.canOnboardMembers || currentUser.role === 'admin') && !isMe;
 
           return (
             <div key={member.id} className="border border-white/10 bg-[#060606] hud-clip overflow-hidden">
@@ -490,6 +503,21 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
                     title="Edit profile, role, department or skills"
                   >
                     EDIT DETAILS ✎
+                  </button>
+                )}
+
+                {/* Delete Member Button */}
+                {canDeleteThisMember && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeMember(member.id);
+                    }}
+                    className="font-mono text-[9px] border border-red-500/40 bg-red-950/20 px-2.5 py-1.5 text-red-400 hover:bg-red-600/30 hover:border-red-500 hover:text-white transition-colors shrink-0 flex items-center gap-1"
+                    title="Delete member from studio and MongoDB"
+                  >
+                    <UserX className="w-3 h-3" />
+                    <span>DELETE</span>
                   </button>
                 )}
 
@@ -647,31 +675,34 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
                   </div>
 
                   {/* Admin Controls: Password Reset + Remove */}
-                  {perms.canChangePasswords && !isMe && member.role !== 'admin' && (
+                  {(perms.canChangePasswords || canDeleteThisMember) && !isMe && (
                     <div className="border border-white/8 bg-[#030303] p-4 space-y-3">
                       <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">ADMIN CONTROLS</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="flex space-x-2">
-                          <input
-                            type="text"
-                            value={pwdInputs[member.id] || ''}
-                            onChange={(e) => setPwdInputs((p) => ({ ...p, [member.id]: e.target.value }))}
-                            placeholder="New passkey..."
-                            className="flex-1 border border-white/10 bg-black px-2.5 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                          />
-                          <button
-                            onClick={() => { resetPassword(member.id, pwdInputs[member.id] || ''); setPwdInputs((p) => ({ ...p, [member.id]: '' })); }}
-                            className="border border-amber-500/50 bg-amber-950/20 px-3 font-mono text-[9px] text-amber-400 hover:bg-amber-600/20 transition-colors"
-                          >
-                            RESET
-                          </button>
-                        </div>
-                        {perms.canOnboardMembers && (
+                        {perms.canChangePasswords && (
+                          <div className="flex space-x-2">
+                            <input
+                              type="text"
+                              value={pwdInputs[member.id] || ''}
+                              onChange={(e) => setPwdInputs((p) => ({ ...p, [member.id]: e.target.value }))}
+                              placeholder="New passkey..."
+                              className="flex-1 border border-white/10 bg-black px-2.5 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                            />
+                            <button
+                              onClick={() => { resetPassword(member.id, pwdInputs[member.id] || ''); setPwdInputs((p) => ({ ...p, [member.id]: '' })); }}
+                              className="border border-amber-500/50 bg-amber-950/20 px-3 font-mono text-[9px] text-amber-400 hover:bg-amber-600/20 transition-colors"
+                            >
+                              RESET
+                            </button>
+                          </div>
+                        )}
+                        {canDeleteThisMember && (
                           <button
                             onClick={() => removeMember(member.id)}
-                            className="border border-red-500/40 bg-red-950/20 px-3 py-2 font-mono text-[9px] text-red-400 hover:bg-red-600/20 transition-colors"
+                            className="border border-red-500/40 bg-red-950/20 px-3 py-2 font-mono text-[9px] text-red-400 hover:bg-red-600/20 transition-colors flex items-center justify-center gap-1.5"
                           >
-                            REMOVE FROM ROSTER
+                            <UserX className="w-3.5 h-3.5" />
+                            <span>REMOVE FROM ROSTER</span>
                           </button>
                         )}
                       </div>
@@ -808,16 +839,28 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
               </div>
             </div>
 
-            <div className="flex space-x-3 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setEditingMember(null)}
-                className="flex-1 border border-white/20 py-2.5 font-mono text-xs text-zinc-400 uppercase hover:text-white transition-colors"
+                className="flex-1 min-w-[100px] border border-white/20 py-2.5 font-mono text-xs text-zinc-400 uppercase hover:text-white transition-colors"
               >
                 CANCEL
               </button>
+              {(perms.canOnboardMembers || currentUser.role === 'admin') && editingMember.id !== currentUser.id && (
+                <button
+                  type="button"
+                  onClick={() => removeMember(editingMember.id)}
+                  className="border border-red-500/50 bg-red-950/30 px-4 py-2.5 font-mono text-xs text-red-400 uppercase hover:bg-red-600 hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <UserX className="w-3.5 h-3.5" />
+                  <span>DELETE MEMBER</span>
+                </button>
+              )}
               <button
+                type="button"
                 onClick={saveMemberEdit}
-                className="flex-1 border border-red-500 bg-red-600/30 py-2.5 font-mono text-xs text-white uppercase hover:bg-red-600 transition-colors shadow-[0_0_20px_rgba(220,38,38,0.3)]"
+                className="flex-1 min-w-[140px] border border-red-500 bg-red-600/30 py-2.5 font-mono text-xs text-white uppercase hover:bg-red-600 transition-colors shadow-[0_0_20px_rgba(220,38,38,0.3)]"
               >
                 SAVE MEMBER DETAILS
               </button>
