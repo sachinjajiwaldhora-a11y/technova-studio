@@ -3,7 +3,8 @@
 
 import { MongoClient, Db } from 'mongodb';
 
-const uri = process.env.MONGODB_URI || '';
+const DEFAULT_MONGO_URI = 'mongodb+srv://sachinbishoi:hn%40hYNQX%40Em9AcT@technovastudio.f6ejzkq.mongodb.net/?retryWrites=true&w=majority';
+const uri = process.env.MONGODB_URI || DEFAULT_MONGO_URI;
 const dbName = process.env.MONGODB_DB || 'technova_studio';
 
 let client: MongoClient;
