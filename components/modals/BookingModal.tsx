@@ -51,6 +51,8 @@ export default function BookingModal({
     email: string;
     kind: 'PROJECT_INQUIRY' | 'CALL_BOOKING';
   } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -87,11 +89,13 @@ export default function BookingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
 
     const timestamp = Date.now();
     const inqId = `inq-${timestamp.toString(36)}`;
     const codeBytes = crypto.getRandomValues(new Uint8Array(12));
-    const codeToken = Array.from(codeBytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const codeToken = Array.from(codeBytes, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
     const sessionCode = `NV-${activeMode === 'BRIEF' ? 'INQ' : 'CALL'}-${codeToken}`;
 
     const isBrief = activeMode === 'BRIEF';
@@ -144,6 +148,7 @@ export default function BookingModal({
       // safe fallback
     }
 
+    setSubmitting(false);
     setSubmittedData({
       sessionCode,
       email,
@@ -406,12 +411,25 @@ export default function BookingModal({
                 </>
               )}
 
+              {submitError && (
+                <div className="p-3 border border-red-500/40 bg-red-950/20 text-red-300 font-mono text-xs">
+                  {submitError}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="theme-btn-primary w-full mt-3 py-3.5 text-xs font-bold uppercase tracking-wider"
+                disabled={submitting}
+                className="theme-btn-primary w-full mt-3 py-3.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <span>{activeMode === 'BRIEF' ? 'DISPATCH INQUIRY TO STUDIO BOARD' : 'LOCK & CONFIRM CALL SLOT'}</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>
+                  {submitting
+                    ? 'TRANSMITTING INTAKE PACKET...'
+                    : activeMode === 'BRIEF'
+                    ? 'DISPATCH INQUIRY TO STUDIO BOARD'
+                    : 'LOCK & CONFIRM CALL SLOT'}
+                </span>
+                <ArrowRight className={`w-4 h-4 ${submitting ? 'animate-pulse' : ''}`} />
               </button>
 
               <div className="flex items-center justify-between font-mono text-[9px] text-[var(--text-muted)] pt-1">

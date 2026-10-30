@@ -54,8 +54,8 @@ function publicProject(project: Record<string, any>): Partial<StudioProject> {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const trackingCode = searchParams.get('code')?.trim().toUpperCase();
-  if (!trackingCode || trackingCode.length > 100) {
+  const rawCode = searchParams.get('code')?.trim();
+  if (!rawCode || rawCode.length > 100) {
     return NextResponse.json({ success: false, error: 'A valid tracking code is required' }, { status: 400 });
   }
 
@@ -72,7 +72,16 @@ export async function GET(request: Request) {
     const db = await getDb();
     const inquiries = db.collection(MONGO_COLLECTIONS.INQUIRIES);
     const projects = db.collection(MONGO_COLLECTIONS.PROJECTS);
-    const inquiry = await inquiries.findOne({ trackingCode });
+
+    const escaped = rawCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const codeRegex = new RegExp(`^${escaped}$`, 'i');
+
+    const inquiry = await inquiries.findOne({
+      $or: [
+        { trackingCode: codeRegex },
+        { id: codeRegex },
+      ],
+    });
     let project: Record<string, any> | null = null;
 
     if (inquiry?.convertedToProjectId) {
@@ -82,8 +91,9 @@ export async function GET(request: Request) {
     if (!project) {
       project = await projects.findOne({
         $or: [
-          { trackingCode },
-          { 'clientInfo.trackingCode': trackingCode },
+          { trackingCode: codeRegex },
+          { 'clientInfo.trackingCode': codeRegex },
+          { id: codeRegex },
         ],
       });
     }

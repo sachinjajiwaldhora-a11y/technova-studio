@@ -31,11 +31,15 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
   const [skills, setSkills] = useState('');
   const [statement, setStatement] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSubmitError(null);
 
     const newRequest: JoinRequest = {
       id: `join-${Date.now().toString(36)}`,
@@ -59,6 +63,7 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
       // safe fallback
     }
 
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -196,12 +201,19 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
                 />
               </div>
 
+              {submitError && (
+                <div className="p-3 border border-red-500/40 bg-red-950/20 text-red-300 font-mono text-xs">
+                  {submitError}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="theme-btn-primary w-full mt-2 py-3.5 text-xs font-bold uppercase tracking-wider"
+                disabled={submitting}
+                className="theme-btn-primary w-full mt-2 py-3.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <span>TRANSMIT CANDIDACY APPLICATION</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>{submitting ? 'TRANSMITTING APPLICATION...' : 'TRANSMIT CANDIDACY APPLICATION'}</span>
+                <ArrowRight className={`w-4 h-4 ${submitting ? 'animate-pulse' : ''}`} />
               </button>
             </form>
           </>

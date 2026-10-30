@@ -227,8 +227,9 @@ export async function POST(
           leadSource: 'WEBSITE_HUD',
           status: 'NEW_INQUIRY',
           submittedAt: new Date().toISOString(),
-          expectedRevenue: 0,
-          dealNotes: '',
+          expectedRevenue: Number(body.expectedRevenue) || 0,
+          dealNotes: typeof body.dealNotes === 'string' ? body.dealNotes.slice(0, 2000) : '',
+          phone: typeof body.phone === 'string' ? body.phone.slice(0, 40) : '',
         };
         const result = await collection.insertOne(intake);
         return NextResponse.json({ success: true, insertedId: result.insertedId });

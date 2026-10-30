@@ -46,10 +46,19 @@ interface TeamTabProps {
   currentUser: StudioMember;
   perms: RBACPermissions;
   members: StudioMember[];
+  joinRequests?: JoinRequest[];
   onMembersChange: (members: StudioMember[]) => void;
+  onJoinRequestsChange?: (reqs: JoinRequest[]) => void;
 }
 
-export default function TeamTab({ currentUser, perms, members, onMembersChange }: TeamTabProps) {
+export default function TeamTab({
+  currentUser,
+  perms,
+  members,
+  joinRequests: externalJoinRequests,
+  onMembersChange,
+  onJoinRequestsChange,
+}: TeamTabProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showOnboard, setShowOnboard] = useState(false);
   const [privateNoteEdit, setPrivateNoteEdit] = useState<string | null>(null);
@@ -77,10 +86,19 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
     clearanceCode: 'LVL-01-RESTRICTED',
   });
 
-  // Join Requests state (applied from website Join Us modal)
+  // Join Requests state (applied from website Join Us modal and MongoDB)
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>(() =>
-    getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS)
+    externalJoinRequests && externalJoinRequests.length > 0
+      ? externalJoinRequests
+      : getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS)
   );
+
+  React.useEffect(() => {
+    if (externalJoinRequests && externalJoinRequests.length > 0) {
+      setJoinRequests(externalJoinRequests);
+    }
+  }, [externalJoinRequests]);
+
   const [applicantRoles, setApplicantRoles] = useState<Record<string, UserRole>>({});
 
   const [form, setForm] = useState({
@@ -97,6 +115,9 @@ export default function TeamTab({ currentUser, perms, members, onMembersChange }
   function saveJoinRequests(updated: JoinRequest[]) {
     setStore(STORAGE_KEYS.JOIN_REQUESTS, updated);
     setJoinRequests(updated);
+    if (onJoinRequestsChange) {
+      onJoinRequestsChange(updated);
+    }
   }
 
   function onboardMember() {

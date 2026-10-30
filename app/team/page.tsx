@@ -11,7 +11,7 @@ import {
   STORAGE_KEYS, getStore, setStore, initStore,
   SEED_MEMBERS, SEED_PROJECTS, SEED_INQUIRIES,
   SEED_ANNOUNCEMENTS, SEED_SHEETS, SEED_CMS,
-  DEFAULT_ROLE_PERMISSIONS,
+  DEFAULT_ROLE_PERMISSIONS, JoinRequest, SEED_JOIN_REQUESTS,
 } from '@/lib/store';
 import { getPermissions } from '@/lib/rbac';
 import { deleteFromMongo, fetchFromMongo, saveToMongo } from '@/lib/mongodb-client';
@@ -44,6 +44,7 @@ export default function TeamDashboard() {
   const [inquiries, setInquiries] = useState<ClientInquiry[]>([]);
   const [announcements, setAnnouncements] = useState<StudioAnnouncement[]>([]);
   const [sheets, setSheets] = useState<CustomSheet[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [cms, setCms] = useState<StudioCMSConfig>(SEED_CMS);
   const [roleConfigs, setRoleConfigs] = useState<RolePermissionConfig[]>(DEFAULT_ROLE_PERMISSIONS);
 
@@ -71,6 +72,7 @@ export default function TeamDashboard() {
           remoteSheets,
           remoteMembers,
           remoteCustomers,
+          remoteJoinRequests,
         ] = await Promise.all([
           fetchFromMongo<StudioProject>('projects'),
           fetchFromMongo<ClientInquiry>('inquiries'),
@@ -78,6 +80,7 @@ export default function TeamDashboard() {
           fetchFromMongo<CustomSheet>('sheets'),
           fetchFromMongo<StudioMember>('members'),
           fetchFromMongo<StudioCustomer>('customers'),
+          fetchFromMongo<JoinRequest>('join_requests'),
         ]);
 
         let remoteLeads: StudioLead[] | null = null;
@@ -127,6 +130,9 @@ export default function TeamDashboard() {
         const initialSheets = remoteSheets !== null
           ? remoteSheets
           : getStore(STORAGE_KEYS.SHEETS, allowDemoFallback ? SEED_SHEETS : []);
+        const initialJoinRequests = remoteJoinRequests !== null
+          ? remoteJoinRequests
+          : getStore(STORAGE_KEYS.JOIN_REQUESTS, allowDemoFallback ? SEED_JOIN_REQUESTS : []);
         const initialLeads = remoteLeads !== null
           ? remoteLeads
           : getStore(STORAGE_KEYS.LEADS, allowDemoFallback ? SEED_LEADS : []);
@@ -149,10 +155,12 @@ export default function TeamDashboard() {
         setInquiries(initialInquiries);
         setAnnouncements(initialAnnouncements);
         setSheets(initialSheets);
+        setJoinRequests(initialJoinRequests);
         if (remoteProjects !== null) setStore(STORAGE_KEYS.PROJECTS, remoteProjects);
         if (remoteInquiries !== null) setStore(STORAGE_KEYS.INQUIRIES, remoteInquiries);
         if (remoteAnnouncements !== null) setStore(STORAGE_KEYS.ANNOUNCEMENTS, remoteAnnouncements);
         if (remoteSheets !== null) setStore(STORAGE_KEYS.SHEETS, remoteSheets);
+        if (remoteJoinRequests !== null) setStore(STORAGE_KEYS.JOIN_REQUESTS, remoteJoinRequests);
         if (remoteMembers !== null && remoteMembers.length > 0) setStore(STORAGE_KEYS.MEMBERS, remoteMembers);
         if (remoteLeads !== null) setStore(STORAGE_KEYS.LEADS, remoteLeads);
         if (remoteColumns !== null) setStore(STORAGE_KEYS.LEAD_COLUMNS, remoteColumns);
@@ -273,6 +281,12 @@ export default function TeamDashboard() {
     setStore(STORAGE_KEYS.MEMBERS, next);
   }
 
+  function handleJoinRequestsChange(next: JoinRequest[]) {
+    syncRemoteCollection('join_requests', joinRequests, next);
+    setJoinRequests(next);
+    setStore(STORAGE_KEYS.JOIN_REQUESTS, next);
+  }
+
   async function handleLogout() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -343,7 +357,9 @@ export default function TeamDashboard() {
             currentUser={currentUser!}
             perms={perms}
             members={members}
+            joinRequests={joinRequests}
             onMembersChange={handleMembersChange}
+            onJoinRequestsChange={handleJoinRequestsChange}
           />
         );
       case 'ANALYTICS':
