@@ -1,7 +1,7 @@
 // FILE PATH: app/team/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   StudioMember, StudioProject, ClientInquiry, StudioAnnouncement,
@@ -47,6 +47,138 @@ export default function TeamDashboard() {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [cms, setCms] = useState<StudioCMSConfig>(SEED_CMS);
   const [roleConfigs, setRoleConfigs] = useState<RolePermissionConfig[]>(DEFAULT_ROLE_PERMISSIONS);
+
+  // Real-time synchronization state
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+
+  // Background real-time poller function
+  const refreshRemoteData = useCallback(async (silent: boolean = true) => {
+    if (!silent) setIsSyncing(true);
+    try {
+      const [
+        remoteProjects,
+        remoteInquiries,
+        remoteAnnouncements,
+        remoteSheets,
+        remoteMembers,
+        remoteCustomers,
+        remoteJoinRequests,
+      ] = await Promise.all([
+        fetchFromMongo<StudioProject>('projects'),
+        fetchFromMongo<ClientInquiry>('inquiries'),
+        fetchFromMongo<StudioAnnouncement>('announcements'),
+        fetchFromMongo<CustomSheet>('sheets'),
+        fetchFromMongo<StudioMember>('members'),
+        fetchFromMongo<StudioCustomer>('customers'),
+        fetchFromMongo<JoinRequest>('join_requests'),
+      ]);
+
+      if (remoteJoinRequests !== null) {
+        const dedupedJoin = Array.from(
+          new Map(remoteJoinRequests.map((r) => [r.email?.toLowerCase().trim() || r.id, r])).values()
+        );
+        setJoinRequests((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(dedupedJoin)) {
+            setStore(STORAGE_KEYS.JOIN_REQUESTS, dedupedJoin);
+            return dedupedJoin;
+          }
+          return prev;
+        });
+      }
+
+      if (remoteInquiries !== null) {
+        setInquiries((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(remoteInquiries)) {
+            setStore(STORAGE_KEYS.INQUIRIES, remoteInquiries);
+            return remoteInquiries;
+          }
+          return prev;
+        });
+      }
+
+      if (remoteMembers !== null && remoteMembers.length > 0) {
+        setMembers((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(remoteMembers)) {
+            setStore(STORAGE_KEYS.MEMBERS, remoteMembers);
+            return remoteMembers;
+          }
+          return prev;
+        });
+      }
+
+      if (remoteProjects !== null) {
+        setProjects((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(remoteProjects)) {
+            setStore(STORAGE_KEYS.PROJECTS, remoteProjects);
+            return remoteProjects;
+          }
+          return prev;
+        });
+      }
+
+      if (remoteAnnouncements !== null) {
+        setAnnouncements((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(remoteAnnouncements)) {
+            setStore(STORAGE_KEYS.ANNOUNCEMENTS, remoteAnnouncements);
+            return remoteAnnouncements;
+          }
+          return prev;
+        });
+      }
+
+      if (remoteSheets !== null) {
+        setSheets((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(remoteSheets)) {
+            setStore(STORAGE_KEYS.SHEETS, remoteSheets);
+            return remoteSheets;
+          }
+          return prev;
+        });
+      }
+
+      if (remoteCustomers !== null) {
+        setCustomers((prev) => {
+          if (JSON.stringify(prev) !== JSON.stringify(remoteCustomers)) {
+            setStore(STORAGE_KEYS.CUSTOMERS, remoteCustomers);
+            return remoteCustomers;
+          }
+          return prev;
+        });
+      }
+
+      try {
+        const leadsRes = await fetch('/api/leads');
+        if (leadsRes.ok) {
+          const leadsJson = await leadsRes.json();
+          if (leadsJson.success && Array.isArray(leadsJson.leads)) {
+            setLeads((prev) => {
+              if (JSON.stringify(prev) !== JSON.stringify(leadsJson.leads)) {
+                setStore(STORAGE_KEYS.LEADS, leadsJson.leads);
+                return leadsJson.leads;
+              }
+              return prev;
+            });
+          }
+          if (leadsJson.success && Array.isArray(leadsJson.columns)) {
+            setLeadColumns((prev) => {
+              if (JSON.stringify(prev) !== JSON.stringify(leadsJson.columns)) {
+                setStore(STORAGE_KEYS.LEAD_COLUMNS, leadsJson.columns);
+                return leadsJson.columns;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch {
+        // fallback
+      }
+
+      setLastSyncTime(new Date());
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -182,6 +314,32 @@ export default function TeamDashboard() {
       active = false;
     };
   }, [router]);
+
+  // Periodic real-time background sync (6 seconds) & tab visibility trigger
+  useEffect(() => {
+    if (!mounted) return;
+
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void refreshRemoteData(true);
+      }
+    }, 6000);
+
+    const onFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void refreshRemoteData(true);
+      }
+    };
+
+    window.addEventListener('focus', onFocusOrVisible);
+    document.addEventListener('visibilitychange', onFocusOrVisible);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocusOrVisible);
+      document.removeEventListener('visibilitychange', onFocusOrVisible);
+    };
+  }, [mounted, refreshRemoteData]);
 
   if (!mounted || !currentUser) {
     return (
@@ -420,6 +578,11 @@ export default function TeamDashboard() {
         onLogout={handleLogout}
         onGoHome={() => router.push('/')}
         unreadCount={unreadAnnCount}
+        syncInfo={{
+          isSyncing,
+          lastSyncTime,
+          onRefresh: () => void refreshRemoteData(false),
+        }}
       >
         {renderTab()}
       </DashboardShell>

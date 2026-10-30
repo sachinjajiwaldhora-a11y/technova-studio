@@ -294,9 +294,15 @@ export async function POST(
         if (collectionName === MONGO_COLLECTIONS.MEMBERS && typeof password === 'string' && password.trim()) {
           passHashUpdate.passwordHash = await hashPassword(password.trim());
         }
+        const updateOps: Record<string, any> = {
+          $set: { ...safeUpdate, ...passHashUpdate },
+        };
+        if (passHashUpdate.passwordHash) {
+          updateOps.$unset = { password: '' };
+        }
         const result = await collection.updateOne(
           { id: body.id },
-          { $set: { ...safeUpdate, ...passHashUpdate } },
+          updateOps,
           { upsert: true }
         );
         return NextResponse.json({ success: true, result });
@@ -333,9 +339,18 @@ export async function PUT(
     if (!member) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+
+    const body = await request.json();
+    const targetId = body.id || (body._id ? body._id.toString() : '');
+
+    const isAdmin = member.role === 'admin';
+    const isSelfMemberUpdate = collectionName === MONGO_COLLECTIONS.MEMBERS &&
+      (member.id === targetId || member.email === targetId);
+
     if (
       new Set<string>([MONGO_COLLECTIONS.MEMBERS, MONGO_COLLECTIONS.RBAC, MONGO_COLLECTIONS.CMS]).has(collectionName) &&
-      member.role !== 'admin'
+      !isAdmin &&
+      !isSelfMemberUpdate
     ) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
     }
@@ -349,8 +364,6 @@ export async function PUT(
 
     const db = await getDb();
     const collection = db.collection(collectionName);
-    const body = await request.json();
-    const targetId = body.id || (body._id ? body._id.toString() : '');
     if (!targetId && collectionName !== MONGO_COLLECTIONS.CMS) {
       return NextResponse.json(
         { success: false, error: 'Document id is required for update' },
@@ -373,9 +386,16 @@ export async function PUT(
       updatedAt: new Date().toISOString(),
     };
 
+    const updateOps: Record<string, any> = {
+      $set: updateDoc,
+    };
+    if (passHashUpdate.passwordHash) {
+      updateOps.$unset = { password: '' };
+    }
+
     const result = await collection.updateOne(
       filter,
-      { $set: updateDoc },
+      updateOps,
       { upsert: true }
     );
 

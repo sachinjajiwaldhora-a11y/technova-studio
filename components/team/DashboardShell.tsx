@@ -7,7 +7,7 @@ import { getPermissions } from '@/lib/rbac';
 import { usePortalTheme, PortalTheme } from '@/lib/portal-theme';
 import {
   LayoutDashboard, Briefcase, Users, BarChart3, Megaphone,
-  Globe, Database, Settings, LogOut, Home, Shield, ChevronRight, Palette, UserPlus,
+  Globe, Database, Settings, LogOut, Home, Shield, ChevronRight, Palette, UserPlus, RefreshCw,
 } from 'lucide-react';
 
 export type DashboardTab =
@@ -20,6 +20,12 @@ export type DashboardTab =
   | 'ANNOUNCEMENTS'
   | 'CMS'
   | 'RBAC_SETTINGS';
+
+export interface SyncInfo {
+  isSyncing: boolean;
+  lastSyncTime: Date | null;
+  onRefresh: () => void;
+}
 
 interface NavItem {
   id: DashboardTab;
@@ -56,6 +62,7 @@ interface DashboardShellProps {
   onGoHome: () => void;
   children: React.ReactNode;
   unreadCount?: number;
+  syncInfo?: SyncInfo;
 }
 
 export default function DashboardShell({
@@ -66,6 +73,7 @@ export default function DashboardShell({
   onGoHome,
   children,
   unreadCount = 0,
+  syncInfo,
 }: DashboardShellProps) {
   const perms = getPermissions(currentUser.role);
   const { theme, setTheme, cycleTheme } = usePortalTheme();
@@ -126,6 +134,31 @@ export default function DashboardShell({
             </div>
           </div>
         </div>
+
+        {/* Real-time Cloud Sync Radar Indicator */}
+        {syncInfo && (
+          <div className="mx-3 my-2 px-3 py-1.5 rounded border border-emerald-500/30 bg-emerald-950/20 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className={`w-2 h-2 rounded-full bg-emerald-400 ${syncInfo.isSyncing ? 'animate-ping' : 'animate-pulse'}`} />
+              <div>
+                <p className="font-mono text-[8px] tracking-wider text-emerald-400 font-bold uppercase">
+                  {syncInfo.isSyncing ? 'FETCHING UPDATES...' : 'LIVE SYNC ACTIVE'}
+                </p>
+                <p className="font-mono text-[7px] text-zinc-400">
+                  {syncInfo.lastSyncTime ? `Synced: ${syncInfo.lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Cloud Polling (6s)'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={syncInfo.onRefresh}
+              disabled={syncInfo.isSyncing}
+              title="Force sync now"
+              className="p-1 text-emerald-400 hover:text-white transition-all active:scale-95 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3 h-3 ${syncInfo.isSyncing ? 'animate-spin text-emerald-300' : ''}`} />
+            </button>
+          </div>
+        )}
 
         {/* Portal Theme Switcher (3 Themes: Dark Tech, Pro Dark, Pro Light) */}
         <div className="px-4 py-3 border-b portal-border space-y-1.5 bg-[var(--portal-surface-sunken,rgba(0,0,0,0.2))]">
@@ -213,6 +246,16 @@ export default function DashboardShell({
           <span className="font-mono text-xs tracking-widest text-[var(--portal-text,#ffffff)] font-bold">TECHNOVA CONSOLE</span>
         </div>
         <div className="flex items-center space-x-2">
+          {syncInfo && (
+            <button
+              onClick={syncInfo.onRefresh}
+              disabled={syncInfo.isSyncing}
+              className="p-1.5 text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-mono text-[9px]"
+              title="Live Cloud Sync Active"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncInfo.isSyncing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
           <button
             type="button"
             onClick={cycleTheme}

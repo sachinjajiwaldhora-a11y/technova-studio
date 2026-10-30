@@ -10,6 +10,7 @@ import {
   Plus, X, ChevronDown, ChevronUp, Shield, Edit3,
   Clock, CheckCircle2, AlertTriangle, Zap, Lock, Users,
   ExternalLink, UserCheck, UserX, Sparkles, KeyRound,
+  Eye, EyeOff, RotateCw, Copy, Check,
 } from 'lucide-react';
 
 const ROLE_COLORS: Record<UserRole, string> = {
@@ -183,33 +184,104 @@ export default function TeamTab({
     setEditingMember(null);
   }
 
-  // Accept and onboard applicant from Join Us form
-  function approveApplicant(req: JoinRequest) {
-    const assignedRole = applicantRoles[req.id] || 'working_member';
-    const newMember: StudioMember = {
-      id: `usr-${Date.now()}`,
-      name: req.fullName,
-      email: req.email,
-      password: `NOVA-JOIN-${Math.floor(1000 + Math.random() * 9000)}`,
-      role: assignedRole,
-      department: req.department,
-      skills: req.skills,
-      clearanceCode: CLEARANCE[assignedRole],
-      photoInitials: req.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
-      accentColor: ['#dc2626', '#7c3aed', '#0891b2', '#059669', '#d97706'][Math.floor(Math.random() * 5)],
-      privateNotes: `Applicant Statement: "${req.statement}". Portfolio: ${req.portfolioUrl}`,
-      managerNotes: `Onboarded from website candidacy application on ${new Date().toISOString().split('T')[0]}.`,
-      activeProjectIds: [],
-      metrics: { tasksCompleted: 0, tasksOverdue: 0, avgCompletionDays: 0, hoursLoggedTotal: 0, deliveryRatePct: 100 },
-      createdAt: new Date().toISOString().split('T')[0],
-      lastActive: new Date().toISOString(),
-    };
+  // Helper to generate strong readable default passkeys
+  function generateSecurePasskey(): string {
+    const num = Math.floor(1000 + Math.random() * 9000);
+    return `Nova@${num}!`;
+  }
 
-    saveMembers([...members, newMember]);
-    const updatedReqs = joinRequests.map((r) =>
-      r.id === req.id ? { ...r, status: 'APPROVED' as const } : r
-    );
-    saveJoinRequests(updatedReqs);
+  // Onboard Applicant with explicit Password Assignment
+  const [applicantToOnboard, setApplicantToOnboard] = useState<JoinRequest | null>(null);
+  const [onboardRole, setOnboardRole] = useState<UserRole>('working_member');
+  const [onboardPasskey, setOnboardPasskey] = useState<string>('');
+  const [showOnboardPasskey, setShowOnboardPasskey] = useState<boolean>(true);
+  const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
+  const [onboardSuccess, setOnboardSuccess] = useState<{
+    name: string;
+    email: string;
+    passkey: string;
+    role: string;
+  } | null>(null);
+  const [hasCopiedCredentials, setHasCopiedCredentials] = useState<boolean>(false);
+
+  function openOnboardModal(req: JoinRequest) {
+    setApplicantToOnboard(req);
+    setOnboardRole(applicantRoles[req.id] || 'working_member');
+    setOnboardPasskey(generateSecurePasskey());
+    setShowOnboardPasskey(true);
+    setHasCopiedCredentials(false);
+  }
+
+  async function confirmOnboardApplicant() {
+    if (!applicantToOnboard) return;
+    const passkey = onboardPasskey.trim();
+    if (passkey.length < 4) {
+      alert('Please enter a passkey of at least 4 characters.');
+      return;
+    }
+
+    setIsOnboarding(true);
+    try {
+      const newMemberId = `usr-${Date.now()}`;
+      const newMember: StudioMember = {
+        id: newMemberId,
+        name: applicantToOnboard.fullName,
+        email: applicantToOnboard.email,
+        password: passkey,
+        role: onboardRole,
+        department: applicantToOnboard.department,
+        skills: applicantToOnboard.skills,
+        clearanceCode: CLEARANCE[onboardRole],
+        photoInitials: applicantToOnboard.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+        accentColor: ['#dc2626', '#7c3aed', '#0891b2', '#059669', '#d97706'][Math.floor(Math.random() * 5)],
+        privateNotes: `Applicant Statement: "${applicantToOnboard.statement}". Portfolio: ${applicantToOnboard.portfolioUrl}`,
+        managerNotes: `Onboarded from website candidacy application on ${new Date().toISOString().split('T')[0]}. Passkey assigned at onboarding.`,
+        activeProjectIds: [],
+        metrics: { tasksCompleted: 0, tasksOverdue: 0, avgCompletionDays: 0, hoursLoggedTotal: 0, deliveryRatePct: 100 },
+        createdAt: new Date().toISOString().split('T')[0],
+        lastActive: new Date().toISOString(),
+      };
+
+      // 1. Direct save to remote MongoDB
+      const saveRes = await fetch('/api/data/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMember),
+      });
+
+      if (!saveRes.ok) {
+        const errJson = await saveRes.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${saveRes.status}`);
+      }
+
+      // 2. Mark join request as APPROVED in remote MongoDB
+      const updatedReq = { ...applicantToOnboard, status: 'APPROVED' as const };
+      await fetch('/api/data/join_requests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedReq),
+      });
+
+      // 3. Update local state & store
+      saveMembers([...members, newMember]);
+      const updatedReqs = joinRequests.map((r) =>
+        r.id === applicantToOnboard.id ? { ...r, status: 'APPROVED' as const } : r
+      );
+      saveJoinRequests(updatedReqs);
+
+      // 4. Show success credentials modal
+      setOnboardSuccess({
+        name: applicantToOnboard.fullName,
+        email: applicantToOnboard.email,
+        passkey,
+        role: ROLE_LABELS[onboardRole],
+      });
+      setApplicantToOnboard(null);
+    } catch (err: any) {
+      alert(`Failed to complete onboarding: ${err?.message || 'Server error'}`);
+    } finally {
+      setIsOnboarding(false);
+    }
   }
 
   function rejectApplicant(reqId: string) {
@@ -267,10 +339,74 @@ export default function TeamTab({
     if (editingMember?.id === memberId) setEditingMember(null);
   }
 
-  function resetPassword(memberId: string, newPwd: string) {
-    if (!perms.canChangePasswords || !newPwd.trim()) return;
-    const updated = members.map((m) => m.id === memberId ? { ...m, password: newPwd } : m);
-    saveMembers(updated);
+  // Robust Member Passkey Reset with direct API persistence and instant feedback
+  const [updatingPwdMemberId, setUpdatingPwdMemberId] = useState<string | null>(null);
+  const [passkeyNotice, setPasskeyNotice] = useState<{
+    memberId: string;
+    name: string;
+    key: string;
+    isError?: boolean;
+    message: string;
+  } | null>(null);
+
+  async function handleResetMemberPasskey(member: StudioMember, newPwd: string) {
+    if (!perms.canChangePasswords) {
+      alert('Access Denied: You do not have permissions to reset passkeys.');
+      return;
+    }
+    const trimmed = newPwd.trim();
+    if (trimmed.length < 4) {
+      setPasskeyNotice({
+        memberId: member.id,
+        name: member.name,
+        key: '',
+        isError: true,
+        message: 'Passkey must contain at least 4 characters.',
+      });
+      return;
+    }
+
+    setUpdatingPwdMemberId(member.id);
+    setPasskeyNotice(null);
+
+    try {
+      const res = await fetch('/api/data/members', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: member.id,
+          password: trimmed,
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `HTTP ${res.status}`);
+      }
+
+      // Success: update local state & clear input
+      const updated = members.map((m) => (m.id === member.id ? { ...m, password: trimmed } : m));
+      saveMembers(updated);
+      setPwdInputs((prev) => ({ ...prev, [member.id]: '' }));
+
+      setPasskeyNotice({
+        memberId: member.id,
+        name: member.name,
+        key: trimmed,
+        isError: false,
+        message: `PASSKEY UPDATED FOR ${member.name.toUpperCase()}!`,
+      });
+    } catch (err: any) {
+      setPasskeyNotice({
+        memberId: member.id,
+        name: member.name,
+        key: '',
+        isError: true,
+        message: `FAILED TO UPDATE PASSKEY: ${err?.message || 'Server error'}`,
+      });
+    } finally {
+      setUpdatingPwdMemberId(null);
+    }
   }
 
   const [pwdInputs, setPwdInputs] = useState<Record<string, string>>({});
@@ -410,11 +546,11 @@ export default function TeamTab({
 
                     <div className="flex space-x-2 pt-1">
                       <button
-                        onClick={() => approveApplicant(req)}
-                        className="flex-1 flex items-center justify-center space-x-1 border border-emerald-500 bg-emerald-950/30 py-2 font-mono text-[10px] text-emerald-400 uppercase hover:bg-emerald-600 hover:text-white transition-colors"
+                        onClick={() => openOnboardModal(req)}
+                        className="flex-1 flex items-center justify-center space-x-1.5 border border-emerald-500 bg-emerald-950/40 py-2 font-mono text-[10px] font-bold text-emerald-400 uppercase hover:bg-emerald-600 hover:text-black transition-all"
                       >
                         <UserCheck className="w-3.5 h-3.5" />
-                        <span>APPROVE & ONBOARD TO ROSTER</span>
+                        <span>ACCEPT & ASSIGN PASSKEY</span>
                       </button>
                       <button
                         onClick={() => rejectApplicant(req.id)}
@@ -706,31 +842,76 @@ export default function TeamTab({
                   </div>
 
                   {/* Admin Controls: Password Reset + Remove */}
-                  {(perms.canChangePasswords || canDeleteThisMember) && !isMe && (
+                  {(perms.canChangePasswords || (canDeleteThisMember && !isMe)) && (
                     <div className="border border-white/8 bg-[#030303] p-4 space-y-3">
-                      <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">ADMIN CONTROLS</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">
+                        {isMe ? 'SECURITY CONTROLS (YOUR ACCOUNT)' : 'ADMIN CONTROLS'}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                         {perms.canChangePasswords && (
-                          <div className="flex space-x-2">
-                            <input
-                              type="text"
-                              value={pwdInputs[member.id] || ''}
-                              onChange={(e) => setPwdInputs((p) => ({ ...p, [member.id]: e.target.value }))}
-                              placeholder="New passkey..."
-                              className="flex-1 border border-white/10 bg-black px-2.5 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
-                            />
-                            <button
-                              onClick={() => { resetPassword(member.id, pwdInputs[member.id] || ''); setPwdInputs((p) => ({ ...p, [member.id]: '' })); }}
-                              className="border border-amber-500/50 bg-amber-950/20 px-3 font-mono text-[9px] text-amber-400 hover:bg-amber-600/20 transition-colors"
-                            >
-                              RESET
-                            </button>
+                          <div className="space-y-2">
+                            <div className="flex space-x-2">
+                              <div className="relative flex-1">
+                                <KeyRound className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                                <input
+                                  type="text"
+                                  value={pwdInputs[member.id] || ''}
+                                  onChange={(e) => setPwdInputs((p) => ({ ...p, [member.id]: e.target.value }))}
+                                  placeholder="New passkey (min 4 chars)..."
+                                  disabled={updatingPwdMemberId === member.id}
+                                  className="w-full border border-white/10 bg-black pl-8 pr-2.5 py-2 font-mono text-xs text-white focus:border-amber-500 focus:outline-none"
+                                />
+                              </div>
+                              <button
+                                onClick={() => void handleResetMemberPasskey(member, pwdInputs[member.id] || '')}
+                                disabled={updatingPwdMemberId === member.id || !(pwdInputs[member.id] || '').trim()}
+                                className="border border-amber-500/60 bg-amber-950/30 px-3 font-mono text-[9px] font-bold text-amber-400 hover:bg-amber-600 hover:text-black transition-colors disabled:opacity-40 flex items-center gap-1.5 shrink-0"
+                              >
+                                {updatingPwdMemberId === member.id ? (
+                                  <span className="animate-spin inline-block">⟳</span>
+                                ) : (
+                                  <KeyRound className="w-3 h-3" />
+                                )}
+                                <span>{updatingPwdMemberId === member.id ? 'SAVING...' : 'CHANGE KEY'}</span>
+                              </button>
+                            </div>
+
+                            {/* Passkey notification message for this member */}
+                            {passkeyNotice && passkeyNotice.memberId === member.id && (
+                              <div
+                                className={`p-2.5 text-xs font-mono border rounded ${
+                                  passkeyNotice.isError
+                                    ? 'border-red-500/40 bg-red-950/30 text-red-400'
+                                    : 'border-emerald-500/50 bg-emerald-950/30 text-emerald-300'
+                                } flex items-center justify-between gap-2`}
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  {passkeyNotice.isError ? (
+                                    <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                  ) : (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                  )}
+                                  <span className="truncate">{passkeyNotice.message}</span>
+                                </div>
+                                {!passkeyNotice.isError && passkeyNotice.key && (
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(passkeyNotice.key);
+                                      alert(`Copied new key for ${member.name}: ${passkeyNotice.key}`);
+                                    }}
+                                    className="border border-emerald-500/40 bg-emerald-900/40 px-2 py-0.5 text-[9px] font-bold text-emerald-200 hover:bg-emerald-600 hover:text-white shrink-0"
+                                  >
+                                    COPY KEY
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
-                        {canDeleteThisMember && (
+                        {canDeleteThisMember && !isMe && (
                           <button
                             onClick={() => removeMember(member.id)}
-                            className="border border-red-500/40 bg-red-950/20 px-3 py-2 font-mono text-[9px] text-red-400 hover:bg-red-600/20 transition-colors flex items-center justify-center gap-1.5"
+                            className="border border-red-500/40 bg-red-950/20 px-3 py-2 font-mono text-[9px] text-red-400 hover:bg-red-600/20 transition-colors flex items-center justify-center gap-1.5 h-[34px]"
                           >
                             <UserX className="w-3.5 h-3.5" />
                             <span>REMOVE FROM ROSTER</span>
@@ -894,6 +1075,194 @@ export default function TeamTab({
                 className="flex-1 min-w-[140px] border border-red-500 bg-red-600/30 py-2.5 font-mono text-xs text-white uppercase hover:bg-red-600 transition-colors shadow-[0_0_20px_rgba(220,38,38,0.3)]"
               >
                 SAVE MEMBER DETAILS
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: AUTHORIZE CANDIDATE & ASSIGN PASSKEY ────────────────── */}
+      {applicantToOnboard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="border border-emerald-500/60 bg-[#070b09] p-6 max-w-lg w-full hud-clip space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+              <div className="flex items-center space-x-2">
+                <UserCheck className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
+                    AUTHORIZE OPERATIVE // ONBOARDING
+                  </h3>
+                  <p className="font-mono text-[10px] text-emerald-400">ASSIGN CLEARANCE & SYSTEM PASSKEY</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setApplicantToOnboard(null)}
+                className="text-zinc-500 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Candidate Dossier Summary */}
+            <div className="border border-white/10 bg-black/60 p-3.5 rounded space-y-2 font-mono text-xs">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-white font-bold text-sm">{applicantToOnboard.fullName}</p>
+                  <p className="text-zinc-400 text-[11px]">{applicantToOnboard.email}</p>
+                </div>
+                <span className="border border-cyan-500/40 bg-cyan-950/30 px-2 py-0.5 text-[10px] text-cyan-300">
+                  {applicantToOnboard.department}
+                </span>
+              </div>
+              {applicantToOnboard.statement && (
+                <p className="text-zinc-400 italic text-[11px] border-l border-emerald-500/40 pl-2">
+                  &ldquo;{applicantToOnboard.statement}&rdquo;
+                </p>
+              )}
+            </div>
+
+            {/* Role Assignment */}
+            <div className="space-y-1.5">
+              <label className="font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
+                ASSIGN SYSTEM CLEARANCE / ROLE:
+              </label>
+              <select
+                value={onboardRole}
+                onChange={(e) => setOnboardRole(e.target.value as UserRole)}
+                className="w-full border border-white/15 bg-black px-3 py-2 font-mono text-xs text-white focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="working_member">WORKING MEMBER (Active Sprints - LVL-05-ALPHA)</option>
+                <option value="member">MEMBER (Standard Access - LVL-01-RESTRICTED)</option>
+                <option value="manager">MANAGER (Tech / Squad Lead - LVL-07-SIGMA)</option>
+                <option value="admin">ADMIN (Executive Clearance - LVL-09-OMEGA)</option>
+              </select>
+            </div>
+
+            {/* Passkey Assignment */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
+                  ASSIGN INITIAL PASSKEY:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setOnboardPasskey(generateSecurePasskey())}
+                  className="flex items-center space-x-1 font-mono text-[9px] text-emerald-400 hover:text-emerald-300"
+                >
+                  <RotateCw className="w-3 h-3" />
+                  <span>GENERATE NEW</span>
+                </button>
+              </div>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showOnboardPasskey ? 'text' : 'password'}
+                  value={onboardPasskey}
+                  onChange={(e) => setOnboardPasskey(e.target.value)}
+                  placeholder="Enter passkey for member..."
+                  className="w-full border border-emerald-500/50 bg-black pl-9 pr-10 py-2.5 font-mono text-sm text-emerald-300 focus:border-emerald-400 focus:outline-none tracking-wider"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOnboardPasskey(!showOnboardPasskey)}
+                  className="text-zinc-500 hover:text-zinc-300 absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  {showOnboardPasskey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="font-mono text-[9px] text-zinc-500">
+                * This passkey will be hashed in MongoDB and used by the operative to log in at /login.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setApplicantToOnboard(null)}
+                disabled={isOnboarding}
+                className="flex-1 border border-white/20 py-2.5 font-mono text-xs text-zinc-400 uppercase hover:text-white hover:border-white transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmOnboardApplicant()}
+                disabled={isOnboarding || !onboardPasskey.trim()}
+                className="flex-2 flex items-center justify-center space-x-2 border border-emerald-500 bg-emerald-600 px-6 py-2.5 font-mono text-xs font-bold text-black uppercase hover:bg-emerald-500 transition-all disabled:opacity-50"
+              >
+                {isOnboarding ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    <span>ACTIVATING...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-4 h-4" />
+                    <span>CONFIRM & ACTIVATE OPERATIVE</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ONBOARDING SUCCESS CREDENTIALS POPUP ────────────────── */}
+      {onboardSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="border border-emerald-500 bg-[#050e08] p-6 max-w-md w-full hud-clip space-y-4 shadow-2xl">
+            <div className="flex items-center space-x-2 text-emerald-400">
+              <CheckCircle2 className="w-6 h-6" />
+              <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-white">
+                OPERATIVE ACTIVATED SUCCESSFULLY!
+              </h3>
+            </div>
+            <p className="font-mono text-xs text-zinc-300">
+              The applicant has been accepted and added to the official studio roster with verified system clearance.
+            </p>
+
+            {/* Credentials Card */}
+            <div className="border border-emerald-500/40 bg-black/70 p-4 rounded font-mono text-xs space-y-2">
+              <p className="text-[10px] text-emerald-400 tracking-widest uppercase font-bold">ACCESS CREDENTIALS</p>
+              <div className="space-y-1 text-zinc-300 text-xs">
+                <p><span className="text-zinc-500">OPERATIVE:</span> <strong className="text-white">{onboardSuccess.name}</strong></p>
+                <p><span className="text-zinc-500">CLEARANCE:</span> <strong className="text-cyan-400">{onboardSuccess.role}</strong></p>
+                <p><span className="text-zinc-500">EMAIL:</span> <strong className="text-white">{onboardSuccess.email}</strong></p>
+                <p><span className="text-zinc-500">PASSKEY:</span> <strong className="text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded">{onboardSuccess.passkey}</strong></p>
+                <p><span className="text-zinc-500">LOGIN URL:</span> <span className="text-zinc-400">{typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}</span></p>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => {
+                  const url = typeof window !== 'undefined' ? `${window.location.origin}/login` : 'https://my-studio-website-sachin-c363.vercel.app/login';
+                  const text = `TECHNOVA STUDIO // ACCESS AUTHORIZED\n\nOperative: ${onboardSuccess.name}\nClearance Role: ${onboardSuccess.role}\nLogin Email: ${onboardSuccess.email}\nAssigned Passkey: ${onboardSuccess.passkey}\nConsole URL: ${url}\n\nPlease keep these credentials secure.`;
+                  navigator.clipboard.writeText(text);
+                  setHasCopiedCredentials(true);
+                  setTimeout(() => setHasCopiedCredentials(false), 3000);
+                }}
+                className="w-full flex items-center justify-center space-x-2 border border-emerald-400 bg-emerald-950/40 py-2.5 font-mono text-xs text-emerald-300 font-bold uppercase hover:bg-emerald-600 hover:text-black transition-all"
+              >
+                {hasCopiedCredentials ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>COPIED TO CLIPBOARD!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>COPY CREDENTIALS & SHARE</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setOnboardSuccess(null)}
+                className="w-full border border-white/20 py-2 font-mono text-xs text-zinc-400 uppercase hover:text-white transition-colors"
+              >
+                CLOSE
               </button>
             </div>
           </div>
