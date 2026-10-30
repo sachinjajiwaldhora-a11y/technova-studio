@@ -433,15 +433,15 @@ export default function TeamTab({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] tracking-[0.3em] text-red-500 uppercase">STUDIO ROSTER & TALENT PIPELINE</p>
-          <h2 className="text-2xl font-extrabold tracking-tight uppercase">TEAM COMMAND</h2>
+          <p className="text-xs font-bold tracking-widest text-red-500 uppercase">STUDIO ROSTER & TALENT PIPELINE</p>
+          <h2 className="text-2xl font-extrabold tracking-tight uppercase text-white">TEAM COMMAND</h2>
         </div>
         {perms.canOnboardMembers && (
           <button
             onClick={() => setShowOnboard(!showOnboard)}
-            className="flex items-center space-x-2 border border-red-500 bg-red-600/20 px-5 py-2.5 font-mono text-xs tracking-widest text-white uppercase hover:bg-red-600 transition-all hud-clip"
+            className="flex items-center space-x-2 border border-red-500 bg-red-600/30 px-5 py-2.5 text-xs font-bold tracking-wider text-white uppercase hover:bg-red-600 transition-all rounded shadow-sm"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>MANUAL ONBOARD MEMBER</span>
           </button>
         )}
@@ -455,11 +455,11 @@ export default function TeamTab({
           <div className="flex items-center justify-between border-b border-red-500/20 pb-3">
             <div className="flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-red-500 animate-pulse" />
-              <span className="font-mono text-xs font-bold text-red-400 tracking-wider uppercase">
+              <span className="text-sm font-bold text-red-400 tracking-wider uppercase">
                 PENDING TALENT ONBOARDING APPLICATIONS ({pendingApplicants.length})
               </span>
             </div>
-            <span className="font-mono text-[9px] text-zinc-400">
+            <span className="text-xs font-semibold text-zinc-400">
               Submitted via Website Join Collective Terminal
             </span>
           </div>
@@ -470,15 +470,15 @@ export default function TeamTab({
               return (
                 <div
                   key={req.id}
-                  className="border border-white/10 bg-black/70 p-4 hud-clip space-y-3 flex flex-col justify-between"
+                  className="border border-white/15 bg-black/80 p-5 hud-clip space-y-3.5 flex flex-col justify-between"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="text-sm font-bold text-white">{req.fullName}</h4>
-                        <p className="font-mono text-[10px] text-zinc-400">{req.email}</p>
+                        <h4 className="text-base font-bold text-white">{req.fullName}</h4>
+                        <p className="text-xs font-semibold text-zinc-300">{req.email}</p>
                       </div>
-                      <span className="font-mono text-[9px] border border-red-500/40 bg-red-950/30 px-2 py-0.5 text-red-300">
+                      <span className="text-xs font-bold border border-red-500/40 bg-red-950/40 px-2.5 py-1 text-red-300 rounded">
                         {req.department}
                       </span>
                     </div>
@@ -487,26 +487,26 @@ export default function TeamTab({
                       {req.skills.map((sk, idx) => (
                         <span
                           key={idx}
-                          className="font-mono text-[8px] border border-white/10 bg-white/[0.03] px-2 py-0.5 text-zinc-300"
+                          className="text-xs font-semibold border border-white/20 bg-white/[0.06] px-2.5 py-1 text-zinc-200 rounded"
                         >
                           {sk}
                         </span>
                       ))}
                     </div>
 
-                    <p className="text-xs text-zinc-300 italic border-l-2 border-red-500/40 pl-3 py-1">
+                    <p className="text-xs text-zinc-300 italic border-l-2 border-red-500/50 pl-3 py-1 leading-relaxed">
                       &ldquo;{req.statement}&rdquo;
                     </p>
 
-                    <div className="flex items-center space-x-3 font-mono text-[10px] pt-1">
+                    <div className="flex items-center space-x-4 text-xs font-bold pt-1">
                       {req.portfolioUrl && (
                         <a
                           href={req.portfolioUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center space-x-1 text-cyan-400 hover:underline"
+                          className="flex items-center space-x-1.5 text-cyan-400 hover:underline"
                         >
-                          <ExternalLink className="w-3 h-3" />
+                          <ExternalLink className="w-3.5 h-3.5" />
                           <span>PORTFOLIO</span>
                         </a>
                       )}
@@ -515,9 +515,9 @@ export default function TeamTab({
                           href={req.githubUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center space-x-1 text-zinc-400 hover:text-white hover:underline"
+                          className="flex items-center space-x-1.5 text-zinc-300 hover:text-white hover:underline"
                         >
-                          <ExternalLink className="w-3 h-3" />
+                          <ExternalLink className="w-3.5 h-3.5" />
                           <span>GITHUB</span>
                         </a>
                       )}
@@ -525,9 +525,9 @@ export default function TeamTab({
                   </div>
 
                   {/* Actions & Role Selection */}
-                  <div className="border-t border-white/10 pt-3 space-y-2">
+                  <div className="border-t border-white/10 pt-3 space-y-2.5">
                     <div className="flex items-center space-x-2">
-                      <span className="font-mono text-[9px] text-zinc-400 uppercase">ASSIGN ROLE:</span>
+                      <span className="text-xs font-bold text-zinc-300 uppercase tracking-wide">ASSIGN ROLE:</span>
                       <select
                         value={selectedRole}
                         onChange={(e) =>
@@ -536,7 +536,7 @@ export default function TeamTab({
                             [req.id]: e.target.value as UserRole,
                           }))
                         }
-                        className="flex-1 border border-white/15 bg-black px-2 py-1 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                        className="flex-1 border border-white/20 bg-black px-2.5 py-1.5 text-xs font-semibold text-white focus:border-red-500 focus:outline-none rounded"
                       >
                         <option value="working_member">WORKING MEMBER (Active Sprints)</option>
                         <option value="member">MEMBER (Standard)</option>
@@ -547,16 +547,17 @@ export default function TeamTab({
                     <div className="flex space-x-2 pt-1">
                       <button
                         onClick={() => openOnboardModal(req)}
-                        className="flex-1 flex items-center justify-center space-x-1.5 border border-emerald-500 bg-emerald-950/40 py-2 font-mono text-[10px] font-bold text-emerald-400 uppercase hover:bg-emerald-600 hover:text-black transition-all"
+                        className="flex-1 flex items-center justify-center space-x-1.5 border border-emerald-500 bg-emerald-950/40 py-2.5 text-xs font-bold text-emerald-300 uppercase hover:bg-emerald-600 hover:text-black transition-all rounded shadow-sm"
                       >
-                        <UserCheck className="w-3.5 h-3.5" />
+                        <UserCheck className="w-4 h-4" />
                         <span>ACCEPT & ASSIGN PASSKEY</span>
                       </button>
                       <button
                         onClick={() => rejectApplicant(req.id)}
-                        className="border border-white/15 px-3 py-2 font-mono text-[10px] text-zinc-400 hover:text-red-400 hover:border-red-500 transition-colors"
+                        className="border border-white/20 px-3.5 py-2.5 text-xs font-bold text-zinc-400 hover:text-red-400 hover:border-red-500 transition-colors rounded"
+                        title="Reject application"
                       >
-                        <UserX className="w-3.5 h-3.5" />
+                        <UserX className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -569,44 +570,46 @@ export default function TeamTab({
 
       {/* Manual Onboard Form */}
       {showOnboard && (
-        <div className="border border-red-500/40 bg-[#080808] p-6 hud-clip space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="font-mono text-xs tracking-widest text-red-400 uppercase font-bold">AUTHORIZE NEW STUDIO MEMBER</p>
-            <button onClick={() => setShowOnboard(false)} className="text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
+        <div className="border border-red-500/50 bg-[#080808] p-6 hud-clip space-y-4">
+          <div className="flex items-center justify-between border-b border-red-500/20 pb-3">
+            <p className="text-sm font-bold tracking-wider text-red-400 uppercase">AUTHORIZE NEW STUDIO MEMBER</p>
+            <button onClick={() => setShowOnboard(false)} className="text-zinc-400 hover:text-white p-1">
+              <X className="w-5 h-5" />
+            </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block font-mono text-[9px] text-zinc-400 mb-1 uppercase tracking-widest">Full Name</label>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Dev Malhotra" className="w-full border border-white/15 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none" />
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5 uppercase tracking-wide">Full Name</label>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Dev Malhotra" className="w-full border border-white/20 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none rounded" />
             </div>
             <div>
-              <label className="block font-mono text-[9px] text-zinc-400 mb-1 uppercase tracking-widest">Email</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="dev@technovastudio.dev" className="w-full border border-white/15 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none" />
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5 uppercase tracking-wide">Email</label>
+              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="dev@technovastudio.dev" className="w-full border border-white/20 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none rounded" />
             </div>
             <div>
-              <label className="block font-mono text-[9px] text-zinc-400 mb-1 uppercase tracking-widest">Initial Passkey</label>
-              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••••" className="w-full border border-white/15 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none" />
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5 uppercase tracking-wide">Initial Passkey</label>
+              <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="••••••••" className="w-full border border-white/20 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none rounded" />
             </div>
             <div>
-              <label className="block font-mono text-[9px] text-zinc-400 mb-1 uppercase tracking-widest">Role</label>
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full border border-white/15 bg-black px-3 py-2 font-mono text-xs text-white focus:outline-none">
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5 uppercase tracking-wide">Role</label>
+              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full border border-white/20 bg-black px-3 py-2 text-xs font-semibold text-white focus:outline-none rounded">
                 <option value="member">MEMBER</option>
                 <option value="working_member">WORKING MEMBER</option>
                 <option value="manager">MANAGER</option>
               </select>
             </div>
             <div>
-              <label className="block font-mono text-[9px] text-zinc-400 mb-1 uppercase tracking-widest">Department</label>
-              <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value as Department })} className="w-full border border-white/15 bg-black px-3 py-2 font-mono text-xs text-white focus:outline-none">
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5 uppercase tracking-wide">Department</label>
+              <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value as Department })} className="w-full border border-white/20 bg-black px-3 py-2 text-xs font-semibold text-white focus:outline-none rounded">
                 {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div>
-              <label className="block font-mono text-[9px] text-zinc-400 mb-1 uppercase tracking-widest">Skills (comma-separated)</label>
-              <input value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} placeholder="WebGL, GLSL, Rust" className="w-full border border-white/15 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none" />
+              <label className="block text-xs font-bold text-zinc-300 mb-1.5 uppercase tracking-wide">Skills (comma-separated)</label>
+              <input value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} placeholder="WebGL, GLSL, Rust" className="w-full border border-white/20 bg-black px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none rounded" />
             </div>
           </div>
-          <button onClick={onboardMember} className="w-full border border-red-500 bg-red-600 py-3 font-mono text-xs tracking-widest text-white uppercase hover:bg-red-500 transition-colors hud-clip">
+          <button onClick={onboardMember} className="w-full border border-red-500 bg-red-600 py-3 text-xs font-bold tracking-widest text-white uppercase hover:bg-red-500 transition-colors rounded shadow-sm">
             CONFIRM ONBOARDING & ISSUE PASSKEY
           </button>
         </div>
@@ -623,15 +626,15 @@ export default function TeamTab({
           const canDeleteThisMember = (perms.canOnboardMembers || currentUser.role === 'admin') && !isMe;
 
           return (
-            <div key={member.id} className="border border-white/10 bg-[#060606] hud-clip overflow-hidden">
+            <div key={member.id} className="border border-white/15 bg-[#060606] hud-clip overflow-hidden shadow-sm">
               {/* Member Card Bar */}
               <div
-                className="flex flex-wrap items-center gap-4 p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                className="flex flex-wrap items-center gap-4 p-4 cursor-pointer hover:bg-white/[0.03] transition-colors"
                 onClick={() => setExpandedId(isExpanded ? null : member.id)}
               >
                 {/* Avatar */}
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white border border-white/20 shrink-0"
+                  className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-base text-white border border-white/25 shrink-0 shadow-sm"
                   style={{ background: member.accentColor }}
                 >
                   {member.photoInitials}
@@ -639,23 +642,23 @@ export default function TeamTab({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold text-white text-base truncate">{member.name}</span>
+                    <span className="font-extrabold text-white text-base truncate">{member.name}</span>
                     {isMe && (
-                      <span className="font-mono text-[9px] bg-red-600/30 border border-red-500/50 text-red-300 px-1.5 py-0.5">YOU</span>
+                      <span className="text-xs font-bold bg-red-600/30 border border-red-500/60 text-red-200 px-2 py-0.5 rounded">YOU</span>
                     )}
-                    <span className={`font-mono text-[9px] border px-2 py-0.5 ${ROLE_COLORS[member.role]}`}>
+                    <span className={`text-xs font-bold border px-2.5 py-0.5 rounded ${ROLE_COLORS[member.role]}`}>
                       {ROLE_LABELS[member.role]}
                     </span>
-                    <span className="font-mono text-[9px] text-zinc-500 border border-white/8 px-2 py-0.5">
+                    <span className="text-xs font-semibold text-zinc-200 bg-white/10 border border-white/20 px-2.5 py-0.5 rounded">
                       {member.clearanceCode}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 mt-1 font-mono text-[10px] text-zinc-500">
-                    <span>{member.email}</span>
-                    <span>&bull;</span>
-                    <span className="text-zinc-400">{member.department}</span>
-                    <span>&bull;</span>
-                    <span className="text-emerald-400">{member.metrics.deliveryRatePct}% Delivery</span>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs font-medium text-zinc-300">
+                    <span className="font-semibold text-white">{member.email}</span>
+                    <span className="text-zinc-500">&bull;</span>
+                    <span className="text-zinc-300">{member.department}</span>
+                    <span className="text-zinc-500">&bull;</span>
+                    <span className="text-emerald-400 font-bold">{member.metrics.deliveryRatePct}% Delivery</span>
                   </div>
                 </div>
 
@@ -666,7 +669,7 @@ export default function TeamTab({
                       e.stopPropagation();
                       openEditModal(member);
                     }}
-                    className="font-mono text-[9px] border border-white/20 bg-white/[0.04] px-3 py-1.5 text-zinc-300 hover:border-red-500 hover:text-white transition-colors shrink-0"
+                    className="text-xs font-bold border border-white/25 bg-white/[0.06] px-3.5 py-1.5 text-zinc-200 hover:border-red-500 hover:text-white hover:bg-white/[0.1] transition-colors shrink-0 rounded"
                     title="Edit profile, role, department or skills"
                   >
                     EDIT DETAILS ✎
@@ -680,10 +683,10 @@ export default function TeamTab({
                       e.stopPropagation();
                       removeMember(member.id);
                     }}
-                    className="font-mono text-[9px] border border-red-500/40 bg-red-950/20 px-2.5 py-1.5 text-red-400 hover:bg-red-600/30 hover:border-red-500 hover:text-white transition-colors shrink-0 flex items-center gap-1"
+                    className="text-xs font-bold border border-red-500/50 bg-red-950/30 px-3 py-1.5 text-red-400 hover:bg-red-600 hover:text-white transition-colors shrink-0 flex items-center gap-1 rounded"
                     title="Delete member from studio and MongoDB"
                   >
-                    <UserX className="w-3 h-3" />
+                    <UserX className="w-3.5 h-3.5" />
                     <span>DELETE</span>
                   </button>
                 )}
@@ -692,26 +695,26 @@ export default function TeamTab({
                 {perms.canEditMemberRoles && member.role !== 'admin' && !isMe && (
                   <button
                     onClick={(e) => { e.stopPropagation(); cycleRole(member.id); }}
-                    className="font-mono text-[9px] border border-white/15 px-3 py-1.5 text-zinc-400 hover:border-violet-500 hover:text-violet-300 transition-colors shrink-0"
+                    className="text-xs font-bold border border-white/20 px-3 py-1.5 text-zinc-300 hover:border-violet-500 hover:text-violet-300 transition-colors shrink-0 rounded"
                     title="Click to cycle role"
                   >
                     CYCLE ROLE ↺
                   </button>
                 )}
 
-                {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500 shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 shrink-0" />}
+                {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-400 shrink-0" />}
               </div>
 
               {/* Expanded Dossier */}
               {isExpanded && (
-                <div className="border-t border-white/8 p-5 space-y-6 bg-[#040404]">
+                <div className="border-t border-white/10 p-5 space-y-6 bg-[#040404]">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {/* Skills */}
                     <div>
-                      <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">VERIFIED SKILLS</p>
+                      <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2.5">VERIFIED SKILLS</p>
                       <div className="flex flex-wrap gap-1.5">
                         {member.skills.map((s) => (
-                          <span key={s} className="font-mono text-[9px] border border-white/10 bg-white/[0.02] px-2 py-0.5 text-zinc-300">
+                          <span key={s} className="text-xs font-semibold border border-white/20 bg-white/[0.05] px-2.5 py-1 text-zinc-200 rounded">
                             {s}
                           </span>
                         ))}
@@ -720,32 +723,32 @@ export default function TeamTab({
 
                     {/* Department & Clearance */}
                     <div>
-                      <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">OPERATIONAL CLEARANCE</p>
-                      <div className="space-y-1 font-mono text-xs">
-                        <p className="text-zinc-400">DEPT: <span className="text-white">{member.department}</span></p>
-                        <p className="text-zinc-400">CLEARANCE: <span className="text-red-400">{member.clearanceCode}</span></p>
-                        <p className="text-zinc-400">MEMBER SINCE: <span className="text-white">{member.createdAt}</span></p>
+                      <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2.5">OPERATIONAL CLEARANCE</p>
+                      <div className="space-y-1.5 text-xs font-medium">
+                        <p className="text-zinc-400">DEPT: <strong className="text-white">{member.department}</strong></p>
+                        <p className="text-zinc-400">CLEARANCE: <strong className="text-red-400">{member.clearanceCode}</strong></p>
+                        <p className="text-zinc-400">MEMBER SINCE: <strong className="text-white">{member.createdAt}</strong></p>
                       </div>
                     </div>
 
                     {/* Metrics */}
                     <div>
-                      <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-2">PERFORMANCE</p>
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between font-mono text-[9px]">
-                          <span className="text-zinc-500">Delivery Rate</span>
-                          <span className="text-emerald-400">{member.metrics.deliveryRatePct}%</span>
+                      <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2.5">PERFORMANCE</p>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-zinc-400">Delivery Rate</span>
+                          <span className="text-emerald-400 font-bold">{member.metrics.deliveryRatePct}%</span>
                         </div>
-                        <div className="h-1 bg-zinc-800 overflow-hidden">
-                          <div className="h-full bg-emerald-500" style={{ width: `${member.metrics.deliveryRatePct}%` }} />
+                        <div className="h-1.5 bg-zinc-800 rounded overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded" style={{ width: `${member.metrics.deliveryRatePct}%` }} />
                         </div>
-                        <div className="flex justify-between font-mono text-[9px]">
-                          <span className="text-zinc-500">Tasks Completed</span>
-                          <span className="text-cyan-400">{member.metrics.tasksCompleted}</span>
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-zinc-400">Tasks Completed</span>
+                          <span className="text-cyan-400 font-bold">{member.metrics.tasksCompleted}</span>
                         </div>
-                        <div className="flex justify-between font-mono text-[9px]">
-                          <span className="text-zinc-500">Hours Logged</span>
-                          <span className="text-violet-400">{member.metrics.hoursLoggedTotal}h</span>
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-zinc-400">Hours Logged</span>
+                          <span className="text-violet-400 font-bold">{member.metrics.hoursLoggedTotal}h</span>
                         </div>
                       </div>
                     </div>
@@ -754,16 +757,16 @@ export default function TeamTab({
                   {/* Private Notes (only self) */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">PRIVATE NOTES (ONLY YOU)</p>
+                      <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider">PRIVATE NOTES (ONLY YOU)</p>
                       {canSeePrivate && (
                         <button
                           onClick={() => {
                             setPrivateNoteEdit(isMe ? member.id : null);
                             setPrivateNoteInputs((p) => ({ ...p, [member.id]: member.privateNotes }));
                           }}
-                          className="font-mono text-[9px] text-zinc-500 hover:text-white flex items-center space-x-1"
+                          className="text-xs font-bold text-zinc-300 hover:text-white flex items-center space-x-1"
                         >
-                          <Edit3 className="w-3 h-3" />
+                          <Edit3 className="w-3.5 h-3.5" />
                           <span>EDIT</span>
                         </button>
                       )}
@@ -776,22 +779,22 @@ export default function TeamTab({
                             onChange={(e) => setPrivateNoteInputs((p) => ({ ...p, [member.id]: e.target.value }))}
                             rows={3}
                             placeholder="Your private notes, tasks, reminders..."
-                            className="w-full border border-white/15 bg-black px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none resize-none"
+                            className="w-full border border-white/20 bg-black px-3 py-2 text-xs font-medium text-white focus:border-red-500 focus:outline-none resize-none rounded"
                           />
                           <div className="flex space-x-2">
-                            <button onClick={() => savePrivateNote(member.id)} className="border border-emerald-500/50 bg-emerald-950/20 px-4 py-1.5 font-mono text-[9px] text-emerald-400 hover:bg-emerald-600/20">SAVE</button>
-                            <button onClick={() => setPrivateNoteEdit(null)} className="border border-white/15 px-4 py-1.5 font-mono text-[9px] text-zinc-400 hover:text-white">CANCEL</button>
+                            <button onClick={() => savePrivateNote(member.id)} className="border border-emerald-500/60 bg-emerald-950/30 px-4 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-600 hover:text-black rounded">SAVE</button>
+                            <button onClick={() => setPrivateNoteEdit(null)} className="border border-white/20 px-4 py-1.5 text-xs font-bold text-zinc-300 hover:text-white rounded">CANCEL</button>
                           </div>
                         </div>
                       ) : (
-                        <p className="border border-white/8 bg-white/[0.02] p-3 font-mono text-[10px] text-zinc-300 whitespace-pre-wrap min-h-[40px]">
+                        <p className="border border-white/10 bg-white/[0.03] p-3.5 text-xs font-medium text-zinc-200 whitespace-pre-wrap min-h-[40px] rounded leading-relaxed">
                           {member.privateNotes || '— No private notes —'}
                         </p>
                       )
                     ) : (
-                      <div className="border border-white/8 bg-white/[0.02] p-3 flex items-center space-x-2">
-                        <Lock className="w-3.5 h-3.5 text-zinc-600" />
-                        <p className="font-mono text-[9px] text-zinc-600">PRIVATE — MEMBER ACCESS ONLY</p>
+                      <div className="border border-white/10 bg-white/[0.03] p-3 flex items-center space-x-2 rounded">
+                        <Lock className="w-4 h-4 text-zinc-500" />
+                        <p className="text-xs font-semibold text-zinc-400">PRIVATE — MEMBER ACCESS ONLY</p>
                       </div>
                     )}
                   </div>
@@ -799,16 +802,16 @@ export default function TeamTab({
                   {/* Manager Notes (manager/admin only) */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">MANAGER NOTES (CONFIDENTIAL)</p>
+                      <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider">MANAGER NOTES (CONFIDENTIAL)</p>
                       {canSeeManagerNotes && perms.canWriteManagerNotes && (
                         <button
                           onClick={() => {
                             setManagerNoteEdit(member.id);
                             setManagerNoteInputs((p) => ({ ...p, [member.id]: member.managerNotes }));
                           }}
-                          className="font-mono text-[9px] text-zinc-500 hover:text-white flex items-center space-x-1"
+                          className="text-xs font-bold text-zinc-300 hover:text-white flex items-center space-x-1"
                         >
-                          <Edit3 className="w-3 h-3" />
+                          <Edit3 className="w-3.5 h-3.5" />
                           <span>EDIT</span>
                         </button>
                       )}
@@ -821,22 +824,22 @@ export default function TeamTab({
                             onChange={(e) => setManagerNoteInputs((p) => ({ ...p, [member.id]: e.target.value }))}
                             rows={3}
                             placeholder="Confidential: performance review, salary notes, promotion flags..."
-                            className="w-full border border-violet-500/40 bg-violet-950/10 px-3 py-2 font-mono text-xs text-white focus:border-violet-500 focus:outline-none resize-none"
+                            className="w-full border border-violet-500/40 bg-violet-950/15 px-3 py-2 text-xs font-medium text-white focus:border-violet-500 focus:outline-none resize-none rounded"
                           />
                           <div className="flex space-x-2">
-                            <button onClick={() => saveManagerNote(member.id)} className="border border-violet-500/50 bg-violet-950/20 px-4 py-1.5 font-mono text-[9px] text-violet-400 hover:bg-violet-600/20">SAVE</button>
-                            <button onClick={() => setManagerNoteEdit(null)} className="border border-white/15 px-4 py-1.5 font-mono text-[9px] text-zinc-400 hover:text-white">CANCEL</button>
+                            <button onClick={() => saveManagerNote(member.id)} className="border border-violet-500/60 bg-violet-950/30 px-4 py-1.5 text-xs font-bold text-violet-300 hover:bg-violet-600 hover:text-white rounded">SAVE</button>
+                            <button onClick={() => setManagerNoteEdit(null)} className="border border-white/20 px-4 py-1.5 text-xs font-bold text-zinc-300 hover:text-white rounded">CANCEL</button>
                           </div>
                         </div>
                       ) : (
-                        <p className="border border-violet-500/20 bg-violet-950/10 p-3 font-mono text-[10px] text-zinc-300 whitespace-pre-wrap min-h-[40px]">
+                        <p className="border border-violet-500/30 bg-violet-950/15 p-3.5 text-xs font-medium text-zinc-200 whitespace-pre-wrap min-h-[40px] rounded leading-relaxed">
                           {member.managerNotes || '— No manager notes —'}
                         </p>
                       )
                     ) : (
-                      <div className="border border-white/8 bg-white/[0.02] p-3 flex items-center space-x-2">
-                        <Lock className="w-3.5 h-3.5 text-zinc-600" />
-                        <p className="font-mono text-[9px] text-zinc-600">CONFIDENTIAL — MANAGER & ADMIN ONLY</p>
+                      <div className="border border-white/10 bg-white/[0.03] p-3 flex items-center space-x-2 rounded">
+                        <Lock className="w-4 h-4 text-zinc-500" />
+                        <p className="text-xs font-semibold text-zinc-400">CONFIDENTIAL — MANAGER & ADMIN ONLY</p>
                       </div>
                     )}
                   </div>
@@ -1014,18 +1017,18 @@ export default function TeamTab({
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block font-mono text-[9px] text-zinc-400 uppercase tracking-widest mb-1">
+                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
                   SKILLS (COMMA-SEPARATED)
                 </label>
                 <input
                   value={editForm.skills}
                   onChange={(e) => setEditForm((p) => ({ ...p, skills: e.target.value }))}
-                  className="w-full border border-white/15 bg-black px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                  className="w-full border border-white/20 bg-black px-3.5 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none rounded"
                 />
               </div>
 
               <div>
-                <label className="block font-mono text-[9px] text-zinc-400 uppercase tracking-widest mb-1">
+                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
                   AVATAR ACCENT COLOR
                 </label>
                 <div className="flex items-center space-x-2">
@@ -1033,20 +1036,20 @@ export default function TeamTab({
                     type="color"
                     value={editForm.accentColor}
                     onChange={(e) => setEditForm((p) => ({ ...p, accentColor: e.target.value }))}
-                    className="w-10 h-9 bg-black border border-white/15 cursor-pointer p-0.5"
+                    className="w-10 h-9 bg-black border border-white/20 cursor-pointer p-0.5 rounded"
                   />
-                  <span className="font-mono text-xs text-zinc-400">{editForm.accentColor}</span>
+                  <span className="font-mono text-xs text-zinc-300 font-semibold">{editForm.accentColor}</span>
                 </div>
               </div>
 
               <div>
-                <label className="block font-mono text-[9px] text-zinc-400 uppercase tracking-widest mb-1">
+                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
                   CLEARANCE CODE
                 </label>
                 <input
                   value={editForm.clearanceCode}
                   onChange={(e) => setEditForm((p) => ({ ...p, clearanceCode: e.target.value }))}
-                  className="w-full border border-white/15 bg-black px-3 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none"
+                  className="w-full border border-white/20 bg-black px-3.5 py-2 font-mono text-xs text-white focus:border-red-500 focus:outline-none rounded"
                 />
               </div>
             </div>
@@ -1092,30 +1095,30 @@ export default function TeamTab({
                   <h3 className="font-mono text-sm font-bold text-white uppercase tracking-wider">
                     AUTHORIZE OPERATIVE // ONBOARDING
                   </h3>
-                  <p className="font-mono text-[10px] text-emerald-400">ASSIGN CLEARANCE & SYSTEM PASSKEY</p>
+                  <p className="font-mono text-xs font-bold text-emerald-400">ASSIGN CLEARANCE & SYSTEM PASSKEY</p>
                 </div>
               </div>
               <button
                 onClick={() => setApplicantToOnboard(null)}
-                className="text-zinc-500 hover:text-white"
+                className="text-zinc-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Candidate Dossier Summary */}
-            <div className="border border-white/10 bg-black/60 p-3.5 rounded space-y-2 font-mono text-xs">
+            <div className="border border-white/10 bg-black/60 p-3.5 rounded space-y-2 text-xs">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-white font-bold text-sm">{applicantToOnboard.fullName}</p>
-                  <p className="text-zinc-400 text-[11px]">{applicantToOnboard.email}</p>
+                  <p className="text-zinc-300 font-medium text-xs">{applicantToOnboard.email}</p>
                 </div>
-                <span className="border border-cyan-500/40 bg-cyan-950/30 px-2 py-0.5 text-[10px] text-cyan-300">
+                <span className="border border-cyan-500/40 bg-cyan-950/40 px-2 py-0.5 text-xs font-bold text-cyan-300 rounded">
                   {applicantToOnboard.department}
                 </span>
               </div>
               {applicantToOnboard.statement && (
-                <p className="text-zinc-400 italic text-[11px] border-l border-emerald-500/40 pl-2">
+                <p className="text-zinc-200 italic text-xs border-l-2 border-emerald-500/60 pl-2">
                   &ldquo;{applicantToOnboard.statement}&rdquo;
                 </p>
               )}
@@ -1123,13 +1126,13 @@ export default function TeamTab({
 
             {/* Role Assignment */}
             <div className="space-y-1.5">
-              <label className="font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
+              <label className="text-xs font-bold tracking-wider text-zinc-300 uppercase">
                 ASSIGN SYSTEM CLEARANCE / ROLE:
               </label>
               <select
                 value={onboardRole}
                 onChange={(e) => setOnboardRole(e.target.value as UserRole)}
-                className="w-full border border-white/15 bg-black px-3 py-2 font-mono text-xs text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full border border-white/20 bg-black px-3 py-2 font-mono text-xs text-white focus:border-emerald-500 focus:outline-none rounded"
               >
                 <option value="working_member">WORKING MEMBER (Active Sprints - LVL-05-ALPHA)</option>
                 <option value="member">MEMBER (Standard Access - LVL-01-RESTRICTED)</option>
@@ -1141,15 +1144,15 @@ export default function TeamTab({
             {/* Passkey Assignment */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="font-mono text-[10px] tracking-widest text-zinc-400 uppercase">
+                <label className="text-xs font-bold tracking-wider text-zinc-300 uppercase">
                   ASSIGN INITIAL PASSKEY:
                 </label>
                 <button
                   type="button"
                   onClick={() => setOnboardPasskey(generateSecurePasskey())}
-                  className="flex items-center space-x-1 font-mono text-[9px] text-emerald-400 hover:text-emerald-300"
+                  className="flex items-center space-x-1 text-xs font-bold text-emerald-400 hover:text-emerald-300"
                 >
-                  <RotateCw className="w-3 h-3" />
+                  <RotateCw className="w-3.5 h-3.5" />
                   <span>GENERATE NEW</span>
                 </button>
               </div>
@@ -1160,17 +1163,17 @@ export default function TeamTab({
                   value={onboardPasskey}
                   onChange={(e) => setOnboardPasskey(e.target.value)}
                   placeholder="Enter passkey for member..."
-                  className="w-full border border-emerald-500/50 bg-black pl-9 pr-10 py-2.5 font-mono text-sm text-emerald-300 focus:border-emerald-400 focus:outline-none tracking-wider"
+                  className="w-full border border-emerald-500/50 bg-black pl-9 pr-10 py-2.5 font-mono text-sm text-emerald-300 focus:border-emerald-400 focus:outline-none tracking-wider rounded"
                 />
                 <button
                   type="button"
                   onClick={() => setShowOnboardPasskey(!showOnboardPasskey)}
-                  className="text-zinc-500 hover:text-zinc-300 absolute right-3 top-1/2 -translate-y-1/2"
+                  className="text-zinc-400 hover:text-white absolute right-3 top-1/2 -translate-y-1/2"
                 >
                   {showOnboardPasskey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="font-mono text-[9px] text-zinc-500">
+              <p className="text-xs font-medium text-zinc-400">
                 * This passkey will be hashed in MongoDB and used by the operative to log in at /login.
               </p>
             </div>

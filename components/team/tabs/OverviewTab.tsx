@@ -226,11 +226,11 @@ export default function OverviewTab({
             >
               <div className="flex items-start justify-between">
                 <Icon className={`w-4 h-4 ${card.color}`} />
-                <ArrowUpRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-300 transition-colors" />
+                <ArrowUpRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
               </div>
               <p className={`mt-3 text-2xl font-black tracking-tight ${card.color}`}>{card.value}</p>
-              <p className="mt-0.5 font-mono text-[8px] tracking-[0.18em] text-white uppercase">{card.label}</p>
-              <p className="mt-0.5 font-mono text-[8px] text-zinc-500">{card.sub}</p>
+              <p className="mt-1 font-mono text-[10px] tracking-wider text-white uppercase font-bold">{card.label}</p>
+              <p className="mt-0.5 text-xs text-zinc-300 font-medium">{card.sub}</p>
             </button>
           );
         })}
@@ -280,26 +280,26 @@ export default function OverviewTab({
             return (
               <div
                 key={tgt.id}
-                className="p-4 rounded border border-white/8 bg-white/[0.02] flex flex-col justify-between space-y-3"
+                className="p-4 rounded border border-white/10 bg-white/[0.03] flex flex-col justify-between space-y-3"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[9px] uppercase tracking-wider text-zinc-400 font-bold">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-300 font-bold">
                       {tgt.period || 'MONTHLY'} TARGET
                     </span>
                     <span
-                      className={`font-mono text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                      className={`font-mono text-xs px-2 py-0.5 rounded font-bold ${
                         isCompleted
-                          ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/40'
+                          ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/50'
                           : pct >= 50
-                          ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-500/40'
-                          : 'bg-zinc-800 text-zinc-400'
+                          ? 'bg-cyan-950/70 text-cyan-300 border border-cyan-500/50'
+                          : 'bg-zinc-800 text-zinc-300'
                       }`}
                     >
                       {pct}%
                     </span>
                   </div>
-                  <h4 className="font-mono text-xs font-bold text-white mt-1 uppercase">{tgt.title}</h4>
+                  <h4 className="font-mono text-xs font-bold text-white mt-1.5 uppercase tracking-wide">{tgt.title}</h4>
                 </div>
 
                 {/* Progress bar */}
@@ -310,12 +310,12 @@ export default function OverviewTab({
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <div className="flex items-center justify-between font-mono text-[9px] text-zinc-400">
+                  <div className="flex items-center justify-between font-mono text-xs text-zinc-300">
                     <span>
                       LIVE: <span className="text-white font-bold">{formatVal(liveCurrent)}</span>
                     </span>
                     <span>
-                      GOAL: <span className="text-zinc-300">{formatVal(targetVal)}</span>
+                      GOAL: <span className="text-zinc-200 font-bold">{formatVal(targetVal)}</span>
                     </span>
                   </div>
                 </div>
@@ -331,17 +331,17 @@ export default function OverviewTab({
         <div className="lg:col-span-2 border border-white/10 bg-[#060606] p-6 hud-clip">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center space-x-2">
-              <Briefcase className="w-3.5 h-3.5 text-red-500" />
-              <span className="font-mono text-[11px] tracking-widest text-white uppercase font-bold">
+              <Briefcase className="w-4 h-4 text-red-500" />
+              <span className="font-mono text-xs tracking-widest text-white uppercase font-bold">
                 ACTIVE ENGINEERING PROJECTS ({activeProjects.length})
               </span>
             </div>
             <button
               onClick={() => onTabChange('PROJECTS')}
-              className="font-mono text-[9px] text-zinc-500 hover:text-red-400 flex items-center space-x-1 transition-colors"
+              className="font-mono text-xs text-zinc-400 hover:text-red-400 flex items-center space-x-1 transition-colors font-bold"
             >
               <span>VIEW ALL</span>
-              <ArrowUpRight className="w-3 h-3" />
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -354,60 +354,60 @@ export default function OverviewTab({
                 <div
                   key={p.id}
                   onClick={() => onTabChange('PROJECTS')}
-                  className="p-4 border border-white/8 bg-white/[0.02] hover:border-red-500/40 hover:bg-white/[0.04] transition-all cursor-pointer group"
+                  className="p-4 border border-white/10 bg-white/[0.03] hover:border-red-500/50 hover:bg-white/[0.05] transition-all cursor-pointer group rounded"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-mono text-[9px] text-zinc-500">[{(p.id || '').toUpperCase()}]</span>
+                      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                        <span className="font-mono text-xs text-zinc-400 font-bold">[{(p.id || '').toUpperCase()}]</span>
                         <h4 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">
                           {p.title || 'Untitled Project'}
                         </h4>
                         {p.priority === 'CRITICAL' && (
-                          <span className="font-mono text-[8px] bg-red-950/80 border border-red-500/60 text-red-400 px-1.5 py-0.2">
+                          <span className="font-mono text-[10px] font-bold bg-red-950/90 border border-red-500/70 text-red-300 px-2 py-0.5 rounded">
                             CRITICAL
                           </span>
                         )}
                         {p.customerId && (
-                          <span className="font-mono text-[8px] bg-violet-950/80 border border-violet-500/60 text-violet-400 px-1.5 py-0.2">
+                          <span className="font-mono text-[10px] font-bold bg-violet-950/90 border border-violet-500/70 text-violet-300 px-2 py-0.5 rounded">
                             {p.customerId}
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-zinc-400 line-clamp-1">{p.description || ''}</p>
+                      <p className="mt-1 text-xs text-zinc-300 font-medium line-clamp-1">{p.description || ''}</p>
                     </div>
-                    <span className="font-mono text-[10px] text-zinc-500 shrink-0 ml-3">
+                    <span className="font-mono text-xs text-zinc-300 font-semibold shrink-0 ml-3 uppercase">
                       {(p.type || '').replace('_', ' ')}
                     </span>
                   </div>
 
                   {/* Progress bar */}
                   <div className="mt-3 flex items-center space-x-3">
-                    <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-red-600 to-amber-500 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                     <span
-                      className={`font-mono text-[9px] font-bold shrink-0 ${
-                        pct === 100 ? 'text-emerald-400' : 'text-zinc-400'
+                      className={`font-mono text-xs font-bold shrink-0 ${
+                        pct === 100 ? 'text-emerald-400' : 'text-zinc-300'
                       }`}
                     >
                       {pct}%{totalMilestones > 0 ? ` (${doneMilestones}/${totalMilestones})` : ''}
                     </span>
                   </div>
                   {p.dueDate && (
-                    <div className="mt-1.5 flex items-center space-x-1 font-mono text-[9px] text-zinc-500">
-                      <Clock className="w-2.5 h-2.5" />
-                      <span>DUE: {p.dueDate}</span>
+                    <div className="mt-2 flex items-center space-x-1.5 font-mono text-xs text-zinc-400 font-medium">
+                      <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>DUE: <strong className="text-zinc-200">{p.dueDate}</strong></span>
                     </div>
                   )}
                 </div>
               );
             })}
             {activeProjects.length === 0 && (
-              <p className="text-xs text-zinc-500 font-mono text-center py-6">NO ACTIVE PROJECTS</p>
+              <p className="text-xs text-zinc-400 font-mono text-center py-6">NO ACTIVE PROJECTS</p>
             )}
           </div>
         </div>
@@ -416,42 +416,47 @@ export default function OverviewTab({
         <div className="border border-white/10 bg-[#060606] p-6 hud-clip">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center space-x-2">
-              <Megaphone className="w-3.5 h-3.5 text-red-500" />
-              <span className="font-mono text-[11px] tracking-widest text-white uppercase font-bold">
+              <Megaphone className="w-4 h-4 text-red-500" />
+              <span className="font-mono text-xs tracking-widest text-white uppercase font-bold">
                 STUDIO DISPATCH
               </span>
             </div>
             <button
               onClick={() => onTabChange('ANNOUNCEMENTS')}
-              className="font-mono text-[9px] text-zinc-500 hover:text-red-400 flex items-center space-x-1 transition-colors"
+              className="font-mono text-xs text-zinc-400 hover:text-red-400 flex items-center space-x-1 transition-colors font-bold"
             >
               <span>ALL</span>
-              <ArrowUpRight className="w-3 h-3" />
+              <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="space-y-3">
             {safeAnnouncements.slice(0, 4).map((ann) => {
               const isUnread = !(ann.readBy || []).includes(currentUserId);
               const catColors: Record<string, string> = {
-                IMPORTANT: 'text-red-400 border-red-500/50',
-                MEETING: 'text-violet-400 border-violet-500/50',
-                POLICY: 'text-amber-400 border-amber-500/50',
-                GENERAL: 'text-zinc-400 border-white/20',
+                IMPORTANT: 'text-red-300 border-red-500/60 bg-red-950/40',
+                MEETING: 'text-violet-300 border-violet-500/60 bg-violet-950/40',
+                POLICY: 'text-amber-300 border-amber-500/60 bg-amber-950/40',
+                GENERAL: 'text-zinc-200 border-white/30 bg-zinc-900',
               };
               return (
                 <div
                   key={ann.id}
-                  className={`border ${isUnread ? 'border-red-500/30 bg-red-950/10' : 'border-white/8 bg-white/[0.02]'} p-3.5`}
+                  className={`border rounded ${isUnread ? 'border-red-500/40 bg-red-950/20' : 'border-white/10 bg-white/[0.03]'} p-3.5`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`font-mono text-[8px] border px-1.5 py-0.5 uppercase ${catColors[ann.category] || catColors.GENERAL}`}>
+                    <span className={`font-mono text-[10px] font-bold border px-2 py-0.5 rounded uppercase ${catColors[ann.category] || catColors.GENERAL}`}>
                       {ann.category}
                     </span>
-                    {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
-                    {ann.pinned && !isUnread && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                    <div className="flex items-center space-x-1.5">
+                      {isUnread && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+                      {ann.pinned && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                    </div>
                   </div>
-                  <p className="mt-1.5 text-xs font-semibold text-white">{ann.title}</p>
-                  <p className="mt-0.5 font-mono text-[9px] text-zinc-500">by {ann.authorName || 'Studio Leadership'}</p>
+                  <h4 className="mt-2 text-xs font-bold text-white line-clamp-1">{ann.title}</h4>
+                  <p className="mt-1 text-xs text-zinc-300 font-medium line-clamp-2">{ann.content}</p>
+                  <p className="mt-2 text-[10px] text-zinc-400 font-mono">
+                    by <span className="text-zinc-300 font-semibold">{ann.authorName || 'Admin'}</span>
+                  </p>
                 </div>
               );
             })}

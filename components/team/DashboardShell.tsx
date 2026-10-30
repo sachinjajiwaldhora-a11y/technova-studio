@@ -30,27 +30,26 @@ export interface SyncInfo {
 interface NavItem {
   id: DashboardTab;
   label: string;
-  sublabel: string;
   icon: React.ElementType;
   requirePerm?: (perms: ReturnType<typeof getPermissions>) => boolean;
   adminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'OVERVIEW',      label: 'OVERVIEW',     sublabel: '01 // COMMAND CENTER',  icon: LayoutDashboard },
-  { id: 'PROJECTS',      label: 'PROJECTS',     sublabel: '02 // ENGINEERING HUB', icon: Briefcase },
-  { id: 'LEADS',         label: 'LEADS',        sublabel: '03 // SALES PIPELINE',   icon: UserPlus,
+  { id: 'OVERVIEW',      label: 'OVERVIEW',     icon: LayoutDashboard },
+  { id: 'PROJECTS',      label: 'PROJECTS',     icon: Briefcase },
+  { id: 'LEADS',         label: 'LEADS',        icon: UserPlus,
     requirePerm: (p) => p.canViewLeads },
-  { id: 'INQUIRIES',     label: 'INQUIRIES',    sublabel: '04 // CLIENT PIPELINE', icon: Globe,
+  { id: 'INQUIRIES',     label: 'INQUIRIES',    icon: Globe,
     requirePerm: (p) => p.canViewAllInquiries || p.canCreateInquiry },
-  { id: 'TEAM',          label: 'TEAM',         sublabel: '05 // STUDIO ROSTER',   icon: Users,
+  { id: 'TEAM',          label: 'TEAM',         icon: Users,
     requirePerm: (p) => p.canViewAllMembers },
-  { id: 'ANALYTICS',    label: 'ANALYTICS',    sublabel: '06 // TELEMETRY DATA',  icon: BarChart3,
+  { id: 'ANALYTICS',     label: 'ANALYTICS',    icon: BarChart3,
     requirePerm: (p) => p.canViewAnalytics },
-  { id: 'ANNOUNCEMENTS',label: 'DISPATCH',     sublabel: '07 // STUDIO NOTICES',  icon: Megaphone },
-  { id: 'CMS',           label: 'PUBLIC CMS',   sublabel: '08 // WEBSITE MATRIX',  icon: Globe,
+  { id: 'ANNOUNCEMENTS', label: 'DISPATCH',     icon: Megaphone },
+  { id: 'CMS',           label: 'PUBLIC CMS',   icon: Globe,
     requirePerm: (p) => p.canManagePortfolioCMS || p.canManageAboutUs, adminOnly: false },
-  { id: 'RBAC_SETTINGS', label: 'ACCESS CTRL', sublabel: '09 // RBAC SETTINGS',   icon: Settings,
+  { id: 'RBAC_SETTINGS', label: 'ACCESS CTRL',  icon: Settings,
     requirePerm: (p) => p.canToggleMemberPermissions },
 ];
 
@@ -190,7 +189,7 @@ export default function DashboardShell({
         </div>
 
         {/* Nav Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-3 space-y-1.5">
           {visibleTabs.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -198,23 +197,22 @@ export default function DashboardShell({
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 text-left transition-all group ${
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 text-left transition-all rounded group ${
                   isActive
-                    ? 'bg-red-600/20 border border-red-500/50 text-white'
-                    : 'border border-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                    ? 'bg-red-600/20 border border-red-500/60 text-white font-bold shadow-sm'
+                    : 'border border-transparent text-zinc-300 hover:text-white hover:bg-white/[0.06]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-red-500' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-mono text-[10px] tracking-[0.18em] font-bold truncate">{item.label}</p>
-                  <p className="font-mono text-[7px] text-zinc-500 truncate">{item.sublabel}</p>
-                </div>
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-red-500' : 'text-zinc-400 group-hover:text-zinc-200'}`} />
+                <span className={`text-xs uppercase tracking-wider truncate flex-1 ${isActive ? 'font-bold text-white' : 'font-semibold text-zinc-300 group-hover:text-white'}`}>
+                  {item.label}
+                </span>
                 {item.id === 'ANNOUNCEMENTS' && unreadCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[8px] flex items-center justify-center font-bold shrink-0">
+                  <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[9px] flex items-center justify-center font-bold shrink-0">
                     {unreadCount}
                   </span>
                 )}
-                {isActive && <ChevronRight className="w-3 h-3 text-red-500 shrink-0" />}
+                {isActive && <ChevronRight className="w-3.5 h-3.5 text-red-500 shrink-0" />}
               </button>
             );
           })}
@@ -224,17 +222,17 @@ export default function DashboardShell({
         <div className="px-3 pb-5 pt-3 border-t border-white/8 space-y-1">
           <button
             onClick={onGoHome}
-            className="w-full flex items-center space-x-2 px-3 py-2 text-zinc-400 hover:text-white hover:bg-white/[0.04] transition-colors"
+            className="w-full flex items-center space-x-2.5 px-3 py-2.5 text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors rounded"
           >
-            <Home className="w-3.5 h-3.5" />
-            <span className="font-mono text-[10px] tracking-widest">HOME MATRIX</span>
+            <Home className="w-4 h-4 text-zinc-400" />
+            <span className="text-xs font-semibold tracking-wider uppercase">HOME MATRIX</span>
           </button>
           <button
             onClick={onLogout}
-            className="w-full flex items-center space-x-2 px-3 py-2 text-zinc-400 hover:text-red-400 hover:bg-red-950/20 transition-colors"
+            className="w-full flex items-center space-x-2.5 px-3 py-2.5 text-zinc-300 hover:text-red-400 hover:bg-red-950/20 transition-colors rounded"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="font-mono text-[10px] tracking-widest">TERMINATE SESSION</span>
+            <LogOut className="w-4 h-4 text-zinc-400" />
+            <span className="text-xs font-semibold tracking-wider uppercase">TERMINATE SESSION</span>
           </button>
         </div>
       </aside>
@@ -288,7 +286,7 @@ export default function DashboardShell({
               }`}
             >
               <Icon className="w-4 h-4" />
-              <span className="font-mono text-[7px] tracking-wider mt-0.5">{item.label}</span>
+              <span className="text-[9px] font-bold tracking-wider mt-1 uppercase">{item.label}</span>
             </button>
           );
         })}
