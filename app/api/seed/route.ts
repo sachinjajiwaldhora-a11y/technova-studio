@@ -95,7 +95,7 @@ async function handleSeed() {
     // 8. Join Requests
     const joinCol = db.collection(MONGO_COLLECTIONS.JOIN_REQUESTS);
     for (const jr of SEED_JOIN_REQUESTS) {
-      await joinCol.updateOne({ id: jr.id }, { $setOnInsert: jr }, { upsert: true });
+      await joinCol.updateOne({ $or: [{ id: jr.id }, { email: jr.email }] }, { $setOnInsert: jr }, { upsert: true });
     }
 
     // 9. Dedicated Leads

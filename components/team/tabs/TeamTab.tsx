@@ -87,15 +87,19 @@ export default function TeamTab({
   });
 
   // Join Requests state (applied from website Join Us modal and MongoDB)
-  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>(() =>
-    externalJoinRequests && externalJoinRequests.length > 0
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>(() => {
+    const raw = externalJoinRequests && externalJoinRequests.length > 0
       ? externalJoinRequests
-      : getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS)
-  );
+      : getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS);
+    return Array.from(new Map(raw.map((r) => [r.email?.toLowerCase().trim() || r.id, r])).values());
+  });
 
   React.useEffect(() => {
     if (externalJoinRequests && externalJoinRequests.length > 0) {
-      setJoinRequests(externalJoinRequests);
+      const deduped = Array.from(
+        new Map(externalJoinRequests.map((r) => [r.email?.toLowerCase().trim() || r.id, r])).values()
+      );
+      setJoinRequests(deduped);
     }
   }, [externalJoinRequests]);
 
@@ -280,7 +284,13 @@ export default function TeamTab({
     new Map(rawFiltered.map((m) => [m.id, m])).values()
   );
 
-  const pendingApplicants = joinRequests.filter((r) => r.status === 'PENDING');
+  const pendingApplicants = Array.from(
+    new Map(
+      joinRequests
+        .filter((r) => r.status === 'PENDING')
+        .map((r) => [r.email?.toLowerCase().trim() || r.id, r])
+    ).values()
+  );
 
   return (
     <div className="p-6 sm:p-8 space-y-8">

@@ -130,9 +130,12 @@ export default function TeamDashboard() {
         const initialSheets = remoteSheets !== null
           ? remoteSheets
           : getStore(STORAGE_KEYS.SHEETS, allowDemoFallback ? SEED_SHEETS : []);
-        const initialJoinRequests = remoteJoinRequests !== null
+        const rawJoinRequests = remoteJoinRequests !== null
           ? remoteJoinRequests
           : getStore(STORAGE_KEYS.JOIN_REQUESTS, allowDemoFallback ? SEED_JOIN_REQUESTS : []);
+        const initialJoinRequests = Array.from(
+          new Map(rawJoinRequests.map((r) => [r.email?.toLowerCase().trim() || r.id, r])).values()
+        );
         const initialLeads = remoteLeads !== null
           ? remoteLeads
           : getStore(STORAGE_KEYS.LEADS, allowDemoFallback ? SEED_LEADS : []);
@@ -160,7 +163,7 @@ export default function TeamDashboard() {
         if (remoteInquiries !== null) setStore(STORAGE_KEYS.INQUIRIES, remoteInquiries);
         if (remoteAnnouncements !== null) setStore(STORAGE_KEYS.ANNOUNCEMENTS, remoteAnnouncements);
         if (remoteSheets !== null) setStore(STORAGE_KEYS.SHEETS, remoteSheets);
-        if (remoteJoinRequests !== null) setStore(STORAGE_KEYS.JOIN_REQUESTS, remoteJoinRequests);
+        setStore(STORAGE_KEYS.JOIN_REQUESTS, initialJoinRequests);
         if (remoteMembers !== null && remoteMembers.length > 0) setStore(STORAGE_KEYS.MEMBERS, remoteMembers);
         if (remoteLeads !== null) setStore(STORAGE_KEYS.LEADS, remoteLeads);
         if (remoteColumns !== null) setStore(STORAGE_KEYS.LEAD_COLUMNS, remoteColumns);
@@ -204,7 +207,7 @@ export default function TeamDashboard() {
 
     for (const item of next) {
       if (JSON.stringify(previousById.get(item.id)) === JSON.stringify(item)) continue;
-      const method = collection === 'inquiries' ? 'PUT' : 'POST';
+      const method = (previousById.has(item.id) || collection === 'inquiries' || collection === 'join_requests') ? 'PUT' : 'POST';
       void saveToMongo(collection, item, method).then((saved) => {
         if (!saved) console.error(`Failed to persist ${collection} record ${item.id}.`);
       });

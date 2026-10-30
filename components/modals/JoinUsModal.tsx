@@ -55,7 +55,10 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
     };
 
     const existing = getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS);
-    setStore(STORAGE_KEYS.JOIN_REQUESTS, [newRequest, ...existing]);
+    const filtered = existing.filter(
+      (r) => r.email?.toLowerCase().trim() !== newRequest.email.toLowerCase().trim() && r.id !== newRequest.id
+    );
+    setStore(STORAGE_KEYS.JOIN_REQUESTS, [newRequest, ...filtered]);
 
     try {
       await saveToMongo('join_requests', newRequest);

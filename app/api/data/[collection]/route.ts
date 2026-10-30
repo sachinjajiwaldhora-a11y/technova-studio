@@ -242,20 +242,46 @@ export async function POST(
       ) {
         return NextResponse.json({ success: false, error: 'Candidate name, email, and portfolio are required' }, { status: 400 });
       }
+
+      const normalizedEmail = body.email.trim().toLowerCase();
+      const existingDoc = await collection.findOne({
+        $or: [{ id: body.id }, { email: normalizedEmail }],
+      });
+
+      if (existingDoc) {
+        // Prevent duplicate insertions: update the existing applicant application
+        await collection.updateOne(
+          { _id: existingDoc._id },
+          {
+            $set: {
+              fullName: body.fullName.slice(0, 160),
+              portfolioUrl: body.portfolioUrl.slice(0, 2048),
+              githubUrl: typeof body.githubUrl === 'string' ? body.githubUrl.slice(0, 2048) : '',
+              department: typeof body.department === 'string' ? body.department.slice(0, 100) : '',
+              skills: Array.isArray(body.skills) ? body.skills.filter((skill: unknown) => typeof skill === 'string').slice(0, 40) : [],
+              statement: typeof body.statement === 'string' ? body.statement.slice(0, 5000) : '',
+              status: body.status || existingDoc.status || 'PENDING',
+              updatedAt: new Date().toISOString(),
+            },
+          }
+        );
+        return NextResponse.json({ success: true, updated: true, id: existingDoc.id });
+      }
+
       const intake = {
         id: body.id,
         fullName: body.fullName.slice(0, 160),
-        email: body.email.trim().toLowerCase(),
+        email: normalizedEmail,
         portfolioUrl: body.portfolioUrl.slice(0, 2048),
         githubUrl: typeof body.githubUrl === 'string' ? body.githubUrl.slice(0, 2048) : '',
         department: typeof body.department === 'string' ? body.department.slice(0, 100) : '',
         skills: Array.isArray(body.skills) ? body.skills.filter((skill: unknown) => typeof skill === 'string').slice(0, 40) : [],
         statement: typeof body.statement === 'string' ? body.statement.slice(0, 5000) : '',
-        submittedAt: new Date().toISOString(),
+        submittedAt: body.submittedAt || new Date().toISOString(),
         status: 'PENDING',
       };
       const result = await collection.insertOne(intake);
-      return NextResponse.json({ success: true, insertedId: result.insertedId });
+      return NextResponse.json({ success: true, insertedId: result.insertedId, id: intake.id });
     }
 
     if (Array.isArray(body)) {
