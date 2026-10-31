@@ -33,41 +33,52 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const isSubmittingRef = React.useRef(false);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || submitting) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
 
-    const newRequest: JoinRequest = {
-      id: `join-${Date.now().toString(36)}`,
-      fullName,
-      email,
-      portfolioUrl,
-      githubUrl: githubUrl || undefined,
-      department,
-      skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-      statement,
-      submittedAt: new Date().toISOString(),
-      status: 'PENDING',
-    };
-
-    const existing = getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS);
-    const filtered = existing.filter(
-      (r) => r.email?.toLowerCase().trim() !== newRequest.email.toLowerCase().trim() && r.id !== newRequest.id
-    );
-    setStore(STORAGE_KEYS.JOIN_REQUESTS, [newRequest, ...filtered]);
-
     try {
-      await saveToMongo('join_requests', newRequest);
-    } catch {
-      // safe fallback
-    }
+      const newRequest: JoinRequest = {
+        id: `join-${Date.now().toString(36)}`,
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        portfolioUrl: portfolioUrl.trim(),
+        githubUrl: githubUrl.trim() || undefined,
+        department,
+        skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+        statement: statement.trim(),
+        submittedAt: new Date().toISOString(),
+        status: 'PENDING',
+      };
 
-    setSubmitting(false);
-    setSubmitted(true);
+      // 1. Dispatch directly to remote MongoDB
+      try {
+        await saveToMongo('join_requests', newRequest);
+      } catch (saveErr) {
+        console.warn('MongoDB join request save warning:', saveErr);
+      }
+
+      // 2. Safe local store update
+      const existing = getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, []);
+      const filtered = existing.filter(
+        (r) => r.email?.toLowerCase().trim() !== newRequest.email.toLowerCase().trim() && r.id !== newRequest.id
+      );
+      setStore(STORAGE_KEYS.JOIN_REQUESTS, [newRequest, ...filtered]);
+
+      setSubmitted(true);
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Transmission failed. Please verify connection and retry.');
+    } finally {
+      isSubmittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -136,10 +147,9 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-mono text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
-                    PORTFOLIO / DEMO REEL URL *
+                    PORTFOLIO / DEMO REEL URL
                   </label>
                   <input
-                    required
                     value={portfolioUrl}
                     onChange={(e) => setPortfolioUrl(e.target.value)}
                     placeholder="https://ananya.art"
@@ -212,7 +222,7 @@ export default function JoinUsModal({ isOpen, onClose }: JoinUsModalProps) {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || isSubmittingRef.current}
                 className="theme-btn-primary w-full mt-2 py-3.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <span>{submitting ? 'TRANSMITTING APPLICATION...' : 'TRANSMIT CANDIDACY APPLICATION'}</span>

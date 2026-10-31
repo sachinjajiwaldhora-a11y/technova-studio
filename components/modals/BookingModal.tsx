@@ -53,6 +53,7 @@ export default function BookingModal({
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const isSubmittingRef = React.useRef(false);
 
   if (!isOpen) return null;
 
@@ -89,71 +90,83 @@ export default function BookingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || submitting) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
 
-    const timestamp = Date.now();
-    const inqId = `inq-${timestamp.toString(36)}`;
-    const codeBytes = crypto.getRandomValues(new Uint8Array(12));
-    const codeToken = Array.from(codeBytes, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
-    const sessionCode = `NV-${activeMode === 'BRIEF' ? 'INQ' : 'CALL'}-${codeToken}`;
-
-    const isBrief = activeMode === 'BRIEF';
-    const parsedRevenue = parseInt((budgetRange || booking.minimumBudget || '25000').replace(/\D/g, '')) || 25000;
-
-    // DIRECTLY AND STRICTLY DISPATCH TO INQUIRY TAB
-    const newInquiry: ClientInquiry = {
-      id: inqId,
-      trackingCode: sessionCode,
-      kind: isBrief ? 'PROJECT_INQUIRY' : 'CALL_BOOKING',
-      clientName: name,
-      company: company || 'Stealth Venture',
-      email: email,
-      title: isBrief ? (projectTitle || `${company || name} Commission`) : (meetingTopic || 'Discovery Architecture Session'),
-      scope: isBrief ? (scope || scopes[0]) : (meetingTopic || 'Executive Strategy Call'),
-      description: isBrief ? description : `Requested Call Slot: ${callSlot || callSlots[0]} via ${meetingPlatform || platforms[0]}. Topic: ${meetingTopic}`,
-      budget: isBrief ? (budgetRange || budgetRanges[0]) : 'Consultation / Scoping',
-      timeline: isBrief ? timeline : undefined,
-      callTimeSlot: !isBrief ? (callSlot || callSlots[0]) : undefined,
-      meetingPlatform: !isBrief ? (meetingPlatform || platforms[0]) : undefined,
-      expectedRevenue: parsedRevenue,
-      leadSource: 'WEBSITE_HUD',
-      preferredCallDate: !isBrief && callDate ? callDate : new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-      status: 'NEW_INQUIRY',
-      assignedSalesId: 'usr-02',
-      dealNotes: isBrief
-        ? `Inbound Project Inquiry: "${projectTitle}". Domain: ${scope || scopes[0]}. Target: ${timeline}.`
-        : `Scheduled Call Request for ${callDate || 'ASAP'} (${callSlot || callSlots[0]}). Platform: ${meetingPlatform || platforms[0]}.`,
-      submittedAt: new Date().toISOString(),
-      followUpDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    };
-
-    const existingInquiries = getStore<ClientInquiry[]>(STORAGE_KEYS.INQUIRIES, SEED_INQUIRIES);
-    setStore(STORAGE_KEYS.INQUIRIES, [newInquiry, ...existingInquiries]);
-
-    // Also dispatch to MongoDB if available
     try {
-      await saveToMongo('inquiries', newInquiry);
-    } catch {
-      // Safe fallback
-    }
+      const timestamp = Date.now();
+      const inqId = `inq-${timestamp.toString(36)}`;
+      const codeBytes = crypto.getRandomValues(new Uint8Array(12));
+      const codeToken = Array.from(codeBytes, (byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+      const sessionCode = `NV-${activeMode === 'BRIEF' ? 'INQ' : 'CALL'}-${codeToken}`;
 
-    // Backward compatible session storage for client
-    try {
-      localStorage.setItem(
-        'technova_client_session',
-        JSON.stringify({ name, email, sessionCode, kind: newInquiry.kind, scope: newInquiry.scope })
+      const isBrief = activeMode === 'BRIEF';
+      const parsedRevenue = parseInt((budgetRange || booking.minimumBudget || '25000').replace(/\D/g, '')) || 25000;
+
+      // DIRECTLY AND STRICTLY DISPATCH TO INQUIRY TAB
+      const newInquiry: ClientInquiry = {
+        id: inqId,
+        trackingCode: sessionCode,
+        kind: isBrief ? 'PROJECT_INQUIRY' : 'CALL_BOOKING',
+        clientName: name.trim(),
+        company: company.trim() || 'Stealth Venture',
+        email: email.trim().toLowerCase(),
+        title: isBrief ? (projectTitle.trim() || `${company.trim() || name.trim()} Commission`) : (meetingTopic.trim() || 'Discovery Architecture Session'),
+        scope: isBrief ? (scope || scopes[0]) : (meetingTopic.trim() || 'Executive Strategy Call'),
+        description: isBrief ? description.trim() : `Requested Call Slot: ${callSlot || callSlots[0]} via ${meetingPlatform || platforms[0]}. Topic: ${meetingTopic.trim()}`,
+        budget: isBrief ? (budgetRange || budgetRanges[0]) : 'Consultation / Scoping',
+        timeline: isBrief ? timeline : undefined,
+        callTimeSlot: !isBrief ? (callSlot || callSlots[0]) : undefined,
+        meetingPlatform: !isBrief ? (meetingPlatform || platforms[0]) : undefined,
+        expectedRevenue: parsedRevenue,
+        leadSource: 'WEBSITE_HUD',
+        preferredCallDate: !isBrief && callDate ? callDate : new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        status: 'NEW_INQUIRY',
+        assignedSalesId: 'usr-02',
+        dealNotes: isBrief
+          ? `Inbound Project Inquiry: "${projectTitle.trim()}". Domain: ${scope || scopes[0]}. Target: ${timeline}.`
+          : `Scheduled Call Request for ${callDate || 'ASAP'} (${callSlot || callSlots[0]}). Platform: ${meetingPlatform || platforms[0]}.`,
+        submittedAt: new Date().toISOString(),
+        followUpDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+      };
+
+      // 1. Dispatch to MongoDB Cloud Database (with backend deduplication)
+      try {
+        await saveToMongo('inquiries', newInquiry);
+      } catch (saveErr) {
+        console.warn('MongoDB save fallback:', saveErr);
+      }
+
+      // 2. Safe deduplicated local storage update
+      const existingInquiries = getStore<ClientInquiry[]>(STORAGE_KEYS.INQUIRIES, []);
+      const dedupedInquiries = existingInquiries.filter(
+        (i) => i.id !== newInquiry.id && i.trackingCode !== newInquiry.trackingCode
       );
-    } catch {
-      // safe fallback
-    }
+      setStore(STORAGE_KEYS.INQUIRIES, [newInquiry, ...dedupedInquiries]);
 
-    setSubmitting(false);
-    setSubmittedData({
-      sessionCode,
-      email,
-      kind: isBrief ? 'PROJECT_INQUIRY' : 'CALL_BOOKING',
-    });
+      // Backward compatible session storage for client
+      try {
+        localStorage.setItem(
+          'technova_client_session',
+          JSON.stringify({ name, email, sessionCode, kind: newInquiry.kind, scope: newInquiry.scope })
+        );
+      } catch {
+        // safe fallback
+      }
+
+      setSubmittedData({
+        sessionCode,
+        email,
+        kind: isBrief ? 'PROJECT_INQUIRY' : 'CALL_BOOKING',
+      });
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Transmission failed. Please retry.');
+    } finally {
+      isSubmittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (

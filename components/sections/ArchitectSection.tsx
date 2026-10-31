@@ -51,40 +51,51 @@ export default function ArchitectSection({ content }: ArchitectSectionProps) {
   const [statement, setStatement] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const isSubmittingRef = React.useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    const newRequest: JoinRequest = {
-      id: `join-${Date.now().toString(36)}`,
-      fullName,
-      email,
-      portfolioUrl,
-      githubUrl: githubUrl || undefined,
-      department,
-      skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-      statement,
-      submittedAt: new Date().toISOString(),
-      status: 'PENDING',
-    };
-
-    // 1. Save to LocalStorage store (guaranteed synchronous backup)
-    const existing = getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS);
-    const filtered = existing.filter(
-      (r) => r.email?.toLowerCase().trim() !== newRequest.email.toLowerCase().trim() && r.id !== newRequest.id
-    );
-    setStore(STORAGE_KEYS.JOIN_REQUESTS, [newRequest, ...filtered]);
-
-    // 2. Dispatch to MongoDB Cloud Database
     try {
-      await saveToMongo('join_requests', newRequest);
-    } catch {
-      // Safe fallback handled by local store
-    }
+      const newRequest: JoinRequest = {
+        id: `join-${Date.now().toString(36)}`,
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        portfolioUrl: portfolioUrl.trim(),
+        githubUrl: githubUrl.trim() || undefined,
+        department,
+        skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
+        statement: statement.trim(),
+        submittedAt: new Date().toISOString(),
+        status: 'PENDING',
+      };
 
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+      // 1. Dispatch directly to remote MongoDB
+      try {
+        await saveToMongo('join_requests', newRequest);
+      } catch (saveErr) {
+        console.warn('MongoDB join request save warning:', saveErr);
+      }
+
+      // 2. Safe local store update
+      const existing = getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, []);
+      const filtered = existing.filter(
+        (r) => r.email?.toLowerCase().trim() !== newRequest.email.toLowerCase().trim() && r.id !== newRequest.id
+      );
+      setStore(STORAGE_KEYS.JOIN_REQUESTS, [newRequest, ...filtered]);
+
+      setIsSubmitted(true);
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Failed to submit application. Please retry.');
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -174,10 +185,9 @@ export default function ArchitectSection({ content }: ArchitectSectionProps) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div>
                         <label className="block font-mono text-[10px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
-                          PORTFOLIO / DEMO REEL URL *
+                          PORTFOLIO / DEMO REEL URL
                         </label>
                         <input
-                          required
                           value={portfolioUrl}
                           onChange={(e) => setPortfolioUrl(e.target.value)}
                           placeholder="https://ananya.art"
@@ -242,10 +252,16 @@ export default function ArchitectSection({ content }: ArchitectSectionProps) {
                       />
                     </div>
 
+                    {submitError && (
+                      <div className="p-3 border border-red-500/40 bg-red-950/20 text-red-300 font-mono text-xs">
+                        {submitError}
+                      </div>
+                    )}
+
                     <button
                       type="submit"
-                      disabled={isSubmitting}
-                      className="theme-btn-primary w-full py-3.5 text-xs font-bold uppercase tracking-wider"
+                      disabled={isSubmitting || isSubmittingRef.current}
+                      className="theme-btn-primary w-full py-3.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
                     >
                       <span>{isSubmitting ? 'TRANSMITTING APPLICATION...' : 'TRANSMIT CANDIDACY APPLICATION'}</span>
                       <ArrowRight className="w-4 h-4" />

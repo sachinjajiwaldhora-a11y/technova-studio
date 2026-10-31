@@ -89,14 +89,14 @@ export default function TeamTab({
 
   // Join Requests state (applied from website Join Us modal and MongoDB)
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>(() => {
-    const raw = externalJoinRequests && externalJoinRequests.length > 0
+    const raw = Array.isArray(externalJoinRequests) && externalJoinRequests.length > 0
       ? externalJoinRequests
-      : getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, SEED_JOIN_REQUESTS);
+      : getStore<JoinRequest[]>(STORAGE_KEYS.JOIN_REQUESTS, []);
     return Array.from(new Map(raw.map((r) => [r.email?.toLowerCase().trim() || r.id, r])).values());
   });
 
   React.useEffect(() => {
-    if (externalJoinRequests && externalJoinRequests.length > 0) {
+    if (Array.isArray(externalJoinRequests)) {
       const deduped = Array.from(
         new Map(externalJoinRequests.map((r) => [r.email?.toLowerCase().trim() || r.id, r])).values()
       );
@@ -450,7 +450,8 @@ export default function TeamTab({
       {/* ───────────────────────────────────────────────────────────────── */}
       {/* PENDING TALENT CANDIDACY / JOIN APPLICATIONS FROM WEBSITE HUD */}
       {/* ───────────────────────────────────────────────────────────────── */}
-      {pendingApplicants.length > 0 && perms.canOnboardMembers && (
+      {perms.canOnboardMembers && (
+        pendingApplicants.length > 0 ? (
         <div className="border border-red-500/50 bg-[#090404] p-6 hud-clip space-y-4">
           <div className="flex items-center justify-between border-b border-red-500/20 pb-3">
             <div className="flex items-center space-x-2">
@@ -566,6 +567,19 @@ export default function TeamTab({
             })}
           </div>
         </div>
+        ) : (
+          <div className="border border-white/10 bg-white/[0.02] px-5 py-3.5 rounded flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <Sparkles className="w-4 h-4 text-zinc-500" />
+              <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                TALENT PIPELINE ACTIVE // 0 PENDING CANDIDACY APPLICATIONS
+              </span>
+            </div>
+            <span className="text-xs font-mono text-zinc-500">
+              Awaiting new dossiers from Website Direct Intake HUD
+            </span>
+          </div>
+        )
       )}
 
       {/* Manual Onboard Form */}
