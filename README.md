@@ -1,99 +1,134 @@
 # TECHNOVA STUDIO ⚡
 
-> **Beyond Digital Engineering**  
-> Technical architecture, interactive studio experiences, and an internal operations dashboard.
+> **Beyond Digital Engineering // Autonomous Studio Platform & Operations Matrix**  
+> High-performance digital architecture, interactive 3D/WebGL experiences, and real-time enterprise operations management.
 
 [![Next.js 16](https://img.shields.io/badge/Next.js-16.4.3-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![React 19](https://img.shields.io/badge/React-19.3.1-blue?style=for-the-badge&logo=react)](https://react.dev/)
 [![TypeScript 5](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.3-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Optional_Persistence-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+[![MongoDB Atlas](https://img.shields.io/badge/MongoDB-Atlas_Cloud_DB-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+[![Vercel Deployed](https://img.shields.io/badge/Deployment-Vercel_Edge-000000?style=for-the-badge&logo=vercel)](https://technova-studio-roan.vercel.app)
 
 ---
 
 ## 🌟 Executive Overview
 
-**Technova Studio** is a Next.js web platform combining a client-facing studio website with an internal operations and CMS dashboard.
+**Technova Studio** is a fullstack Next.js web application engineered for boutique design engineering agencies, WebGL shader labs, and AI architecture teams. It seamlessly unifies:
 
-Designed for boutique engineering studios, high-tech agencies, and research teams, it provides client acquisition funnels, transparent client project telemetry tracking, dynamic live CMS controls, and granular Role-Based Access Control (RBAC).
+1. **A Cybernetic Public Presence (`/`)**: High-contrast HUD aesthetics, interactive portfolio showcases, automated candidate recruitment, and secure client booking pipelines.
+2. **Real-time Client Telemetry Portal (`/track`)**: Public, account-less sprint tracking where clients follow live milestones using unique tracking tokens.
+3. **Internal Operations Command Center (`/team`)**: Secured by signed HttpOnly sessions (`scrypt` password hashing), featuring 9 operational modules for sprint management, CRM leads pipelines, candidate clearance & passkey onboarding, live CMS content management, and dynamic RBAC.
 
 ---
 
 ## 🚀 Key Modules & Capabilities
 
 ### 1. 🌌 Public Studio Experience (`/`)
-* **Cybernetic HUD Design System:** Deep-space dark mode, high-contrast red accent palette, custom cursor physics, and terminal bootloader sequence (`BootSequence.tsx`).
-* **Animated Studio Interface:** Custom CSS/SVG visuals, page transitions, and interactive navigation.
-* **Autonomous Robotic Guide (`RoboticAgent.tsx`):** Floating interactive studio assistant providing system status and interactive navigation guidance.
-* **Interactive Portfolio Showcase:** Live showcase of studio engineering builds with live sandbox previews, technical tags, and filter states.
+* **Cybernetic HUD Design System:** Deep-space dark theme, high-contrast typography, interactive floating HUD dock, and cinematic boot sequence (`BootSequence.tsx`).
+* **Interactive Portfolio Showcase:** Filterable engineering builds with sandbox previews, technical tags, and live external demo links.
+* **Autonomous Robotic Guide (`RoboticAgent.tsx`):** Floating interactive studio assistant providing system status and navigation guidance.
 * **Client Scoping & Call Booking Engine (`BookingModal.tsx`):**
-  * **Mode A (Project Brief):** Detailed scope specification, budget tiering, and milestone delivery preferences.
-  * **Mode B (Discovery Call):** Schedule technical consultations with calendar slot reservation and platform selection (Google Meet, Discord, Zoom).
-  * Automatically issues a unique tracking hash (e.g. `NV-INQ-1042`).
-* **Onboarding & Recruitment Gateway (`JoinUsModal.tsx`):** Structured recruitment intake with GitHub, portfolio validation, and skill verification.
+  * **Project Brief:** Scope specification, budget tiering, and milestone delivery preferences.
+  * **Discovery Call:** Direct calendar slot reservation and platform selection (Google Meet, Zoom, Secure Audio).
+  * **Synchronous Lock & Backend Deduplication:** Submissions are protected by `useRef` locks and a 2-minute backend idempotency guard to eliminate duplicate requests.
+  * Automatically issues a unique tracking hash (e.g., `NV-INQ-1042`).
+* **Talent Recruitment Gateway (`JoinUsModal.tsx` & `ArchitectSection.tsx`):**
+  * Direct intake dossier submission for shader engineers, systems architects, and UI designers.
+  * Automatically registers dossiers with `status: PENDING` into MongoDB and alerts the internal team console in real-time.
 
 ---
 
 ### 2. 🛰️ Client Transparency & Project Tracker (`/track`)
-* Clients can enter their project tracking hash (e.g. `NV-INQ-1042`) at any time without needing an account.
-* **Live Milestones:** Shows real-time progression from Scoping $\rightarrow$ Active Development $\rightarrow$ Code Review $\rightarrow$ Deployment.
-* **Project Telemetry:** Assigned lead engineers, target completion dates, expected deliverables, and direct team contacts.
+* Clients enter their tracking hash (e.g., `NV-INQ-1042` or `NV-CALL-...`) without requiring an account or password.
+* **Live Milestones Progression:** Real-time visual pipeline: `SCOPING` $\rightarrow$ `ACTIVE DEVELOPMENT` $\rightarrow$ `CODE REVIEW` $\rightarrow$ `DEPLOYMENT`.
+* **Telemetry Data:** Shows assigned squad lead, expected delivery dates, client deliverables, and direct secure contact channels.
 
 ---
 
-### 3. 🛡️ Internal Operations & Team Command Center (`/team`)
-Protected by a signed, HttpOnly session issued at `/login`, the internal portal offers 9 control centers:
+### 3. 🛡️ Master Operations Command Center (`/team`)
+Protected by signed HttpOnly session cookies issued at `/login`. Features 9 high-velocity operational control modules:
 
 | Module | Features & Capabilities |
 | :--- | :--- |
-| **📊 Mission Overview** | Real-time studio stats, active project pipeline counter, revenue metrics, pending leads, and team capacity. |
-| **📁 Project Pipelines** | Kanban & list views, milestone progression tracking, live hours logging, git repos, Figma links, and progress algorithms. |
-| **💼 Inquiries & CRM** | Complete intake funnel, deal conversion to active projects, budget tracking, and status pipeline. |
-| **👥 Team Dossiers** | Member directory, clearance levels, skill tags, performance metrics, and private manager feedback notes. |
-| **🔐 Dynamic RBAC Engine** | Role-Based Access Control matrix. Admins/Managers can toggle 30+ permissions across roles in real-time. |
-| **📝 Live Portfolio CMS** | Edit showcase projects, "About Us" manifesto, metrics, and booking parameters directly from the browser without code changes. |
-| **📈 Analytics Engine** | Financial forecasting, workload distribution charts, and project delivery velocity. |
-| **📢 Studio Bulletins** | Internal bulletin system with category badges (Important, Meeting, Policy) and priority pinning. |
-| **📑 Custom Data Sheets** | Integrated spreadsheet engine supporting custom schema creation, column addition, and inline data editing. |
+| **📊 OVERVIEW** | Real-time studio KPI stat cards, velocity telemetry, quarterly milestone tracking, monthly target progress widgets, active project health bars, and studio dispatch notices. |
+| **📁 PROJECTS** | Active engineering sprints, Kanban & list views, milestone progression tracking, live customer ID linking, GitHub repository references, and completion algorithms. |
+| **💼 LEADS & PIPELINE** | Interactive CRM Kanban board, customizable column builder, stage tracking (`NEW`, `CONTACTED`, `FOLLOW_UP`, `INTERESTED`, `DEAL_WON`, `LOST`), CSV/Excel batch import, and deal valuation. |
+| **📩 INQUIRIES** | Incoming project briefs and scheduled discovery calls. Includes deal conversion to active engineering projects with automated client credentials. |
+| **👥 TEAM ROSTER** | Member directory, clearance levels (`LVL-01` to `LVL-09`), department assignments, performance metrics, and private manager notes. |
+| **⚡ ONBOARDING QUEUE** | Candidate review queue. Admins can accept applicants, assign clearance roles, auto-generate secure passkeys, and immediately activate members into the live roster. |
+| **📈 ANALYTICS** | Financial pipeline forecasting, revenue distribution charts, deal closure velocity, and operative workload telemetry. |
+| **📢 DISPATCH** | Studio bulletin board with categorized tags (`IMPORTANT`, `MEETING`, `POLICY`, `GENERAL`) and priority announcement pinning. |
+| **📝 PUBLIC CMS** | Live content management system. Edit showcase projects, "About Us" manifesto, metrics, and booking parameters directly from the browser with version rollback and audit logs. |
+| **🔐 ACCESS CTRL (RBAC)**| Granular Role-Based Access Control matrix. Admins can toggle 30+ permissions across roles (`admin`, `manager`, `working_member`, `member`) with instant live propagation. |
 
 ---
 
 ## ⚡ Tech Stack Architecture
 
-* **Framework:** [Next.js 16 (App Router)](https://nextjs.org/)
+* **Framework:** [Next.js 16 (App Router with Turbopack)](https://nextjs.org/)
 * **Runtime / Language:** React 19 + TypeScript 5
-* **Motion & Visual Effects:** GSAP, CSS/SVG effects, and optional embedded project previews
-* **Styling & Design System:** Tailwind CSS v4, `@tailwindcss/postcss`, and custom CSS theme tokens
+* **Styling & Design System:** Tailwind CSS v4, `@tailwindcss/postcss`, custom CSS design tokens
 * **Icons:** [Lucide React](https://lucide.dev/)
-* **Data Storage / Persistence:** Browser `localStorage` supports the zero-setup demo; MongoDB-backed API routes persist CMS content, inquiries, projects, announcements, and sheets when configured. Supabase files are legacy scaffolding and are not the active application persistence adapter.
-
-The public tracker queries MongoDB by tracking code when configured and falls back to local demo data otherwise. Some portal modules (including lead/customer/target records and portions of team/RBAC state) still use browser-local storage; use MongoDB-backed collections for shared operational data.
+* **Animations:** GSAP & GPU-accelerated CSS transitions
+* **Primary Database:** [MongoDB Atlas](https://www.mongodb.com/) via official native Node.js driver (`mongodb` v7.7) with pooled connections (`lib/mongodb.ts`)
+* **Security & Auth:** Signed HttpOnly session cookies (`technova_session`), Node.js `crypto.scrypt` password hashing with cryptographic salt verification (`lib/password.ts`, `lib/auth.ts`)
+* **Deployment:** [Vercel](https://vercel.com/) with Edge optimization
 
 ---
 
 ## 🛠️ Getting Started (Local Development)
 
 ### 1. Prerequisites
-Ensure you have the following installed on your machine:
 * **Node.js**: `v18.17+` (v20+ recommended)
 * **npm** or **pnpm** or **yarn**
+* **MongoDB**: A MongoDB Atlas connection string (or local MongoDB running on `mongodb://127.0.0.1:27017`)
 
 ### 2. Installation
-
-Clone the repository and install dependencies:
 
 ```bash
 # Clone the repository
 git clone https://github.com/sachinjajiwaldhora-a11y/technova-studio.git
 
 # Enter the project directory
-cd technova-studio
+cd my-studio-website
 
 # Install dependencies
 npm install
 ```
 
-### 3. Run Development Server
+### 3. Environment Configuration
+
+Create a `.env.local` file in the project root:
+
+```env
+# MongoDB Atlas Database Connection
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DB=technova_studio
+
+# Session Security Secret (minimum 32 characters)
+AUTH_SESSION_SECRET=7c8f9b2d4e6a1f3c8b5e9d2a4f6c8b1e7a3d5f9b2c4e6a8f1d3b5e7a9c2d4f6a
+
+# Optional Webhook Secret for External Leads Integration
+LEADS_WEBHOOK_SECRET=technova-webhook-secret-token-2026
+
+# Public Site URL
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+### 4. Database Seeding
+
+Populate initial admin accounts, collections, and CMS records:
+
+```bash
+# Seed core collections (members, projects, inquiries, leads, announcements)
+npm run seed:mongo
+
+# Seed dynamic public CMS sections
+npm run seed:cms
+```
+
+### 5. Launch Development Server
 
 ```bash
 npm run dev
@@ -104,43 +139,40 @@ Open your browser and navigate to:
 http://localhost:3000
 ```
 
-> **Note:** The project runs immediately with comprehensive seed data in **LocalStorage fallback mode**. You do not need any database credentials to explore the full platform.
-
 ---
 
-## 🔑 Demo Access & Clearance Credentials
+## 🔑 Default Clearance Credentials
 
-To test the internal command portal, navigate to `/login` or click **"PORTAL ENTRY"** in the navigation HUD. Use any of the pre-configured credentials below:
+To access the internal dashboard, navigate to `/login` and use one of the pre-configured clearance accounts:
 
 | Role | Email | Password | Clearance Level |
 | :--- | :--- | :--- | :--- |
 | **Executive Admin** | `sachinjajiwaldhora@gmail.com` | `NOVA-SACHIN-2025` | `LVL-09-OMEGA` (Full Root Access) |
 | **Co-Admin / Ops** | `anujb2296@gmail.com` | `NOVA-ANUJ-2025` | `LVL-09-OMEGA` (Full Root Access) |
 | **Tech Lead / Manager** | `manager@technovastudio.dev` | `NOVA-MGR-KEY` | `LVL-07-SIGMA` (Team & Leads Management) |
-| **Working Member** | `core@technovastudio.dev` | `NOVA-CORE-KEY` | `LVL-05-ALPHA` (Assigned Projects & Hours) |
-| **Restricted Member** | `recruit@technovastudio.dev` | `NOVA-INIT-KEY` | `LVL-01-RESTRICTED` (Limited Viewer) |
+| **Working Member** | `core@technovastudio.dev` | `NOVA-CORE-KEY` | `LVL-05-ALPHA` (Assigned Sprints & Tasks) |
+| **Restricted Member** | `recruit@technovastudio.dev` | `NOVA-INIT-KEY` | `LVL-01-RESTRICTED` (View Only) |
 
-*You can also test the Client Tracker using tracking ID:* `NV-INQ-1042`.
+*You can also test the Client Transparency Portal (`/track`) using tracking ID:* `NV-INQ-1042`.
 
 ---
 
-## 🍃 MongoDB Setup (Optional)
+## 🍃 MongoDB Collections Reference
 
-To persist supported application flows across users:
+The application manages data within the following dedicated MongoDB collections:
 
-1. Configure a MongoDB database (Atlas or self-hosted).
-2. Copy `.env.example` to `.env.local` and set `MONGODB_URI` and `MONGODB_DB`.
-3. Run `npm run seed:mongo` to populate the internal collections.
-4. Run `npm run seed:cms` or sign in as an admin and initialize the CMS sections.
-5. Restart the dev server and check `/api/health`.
-
-```bash
-Copy-Item .env.example .env.local
-```
-
-`supabase_schema.sql` and the Supabase client are retained for legacy/reference use; configuring Supabase alone does not activate cloud synchronization in the current app.
-
-LocalStorage-only demo mode is intended for local development, not as a shared production database.
+* `studio_members`: Team directory, roles, hashed passwords (`scrypt`), clearance levels, and metrics.
+* `studio_projects`: Active engineering builds, milestone arrays, customer ID links, and progress telemetry.
+* `studio_inquiries`: Inbound project briefs, call booking schedules, and tracking tokens.
+* `studio_leads`: CRM pipeline entries, contact stages, deal valuation, and assigned specialists.
+* `studio_lead_columns`: Customizable Kanban column definitions and order.
+* `studio_targets`: Monthly/quarterly revenue and sprint velocity target definitions.
+* `studio_join_requests`: Candidate recruitment applications with department, portfolio, and review status.
+* `studio_announcements`: Dispatch board notices, categories, and author metadata.
+* `studio_sheets`: Custom structured data spreadsheets and table columns.
+* `cms_sections`: Live CMS section definitions (Hero, About, Services, Featured Work, etc.).
+* `cms_versions`: Historic version rollback snapshots for CMS edits.
+* `cms_audit_log`: Audit trail recording who made edits and when.
 
 ---
 
@@ -149,68 +181,81 @@ LocalStorage-only demo mode is intended for local development, not as a shared p
 ```plaintext
 my-studio-website/
 ├── app/
-│   ├── globals.css              # Cyberpunk HUD theme, scanlines, and typography tokens
-│   ├── layout.tsx               # Root layout, HTML wrapper & custom cursor
-│   ├── page.tsx                 # Public Studio homepage with WebGL & dynamic sections
+│   ├── globals.css                 # Cyberpunk HUD theme, scanlines, and typography tokens
+│   ├── layout.tsx                  # Root layout, HTML wrapper & custom cursor
+│   ├── page.tsx                    # Public Studio homepage with interactive dynamic sections
 │   ├── login/
-│   │   └── page.tsx             # Team clearance authentication gateway
+│   │   └── page.tsx                # Team clearance authentication gateway
 │   ├── team/
-│   │   └── page.tsx             # Master Operations Command Dashboard
-│   └── track/
-│       └── page.tsx             # Client project tracking portal
+│   │   ├── page.tsx                # Master Operations Command Dashboard
+│   │   ├── data/page.tsx           # Standalone data matrix viewer
+│   │   └── tasks/page.tsx          # Operative sprint tasks list
+│   ├── track/
+│   │   └── page.tsx                # Public client project tracking portal
+│   └── api/
+│       ├── auth/                   # Login, logout, and session verification routes
+│       ├── cms/                    # Content, audit logs, featured projects, upload, versions
+│       ├── data/[collection]/      # Unified MongoDB REST handler (GET, POST, PUT, DELETE)
+│       ├── health/                 # Database connection health check endpoint
+│       ├── leads/                  # CRM operations, import, convert, and webhooks
+│       ├── seed/                   # HTTP database seed endpoints
+│       ├── targets/                # Target tracking & velocity metrics
+│       └── track/                  # Public client tracking lookup
 ├── components/
 │   ├── entry/
-│   │   └── BootSequence.tsx     # Futuristic terminal bootloader
+│   │   └── BootSequence.tsx        # Futuristic terminal bootloader
 │   ├── modals/
-│   │   ├── BookingModal.tsx     # Project brief scoping & call booking
-│   │   ├── JoinUsModal.tsx      # Team recruitment modal
-│   │   └── StatusTrackerModal.tsx # Client tracking code lookup
+│   │   ├── BookingModal.tsx        # Project brief scoping & call booking with deduplication
+│   │   ├── JoinUsModal.tsx         # Talent recruitment application modal
+│   │   └── StatusTrackerModal.tsx  # Client tracking code lookup modal
 │   ├── navigation/
-│   │   └── FloatingHUD.tsx      # Futuristic glassmorphism navigation dock
+│   │   ├── Navbar.tsx              # Public header navigation
+│   │   ├── Footer.tsx              # Public footer with quick dispatch triggers
+│   │   ├── FloatingHUD.tsx         # Futuristic glassmorphism navigation dock
+│   │   └── CommandPalette.tsx      # Global quick-action search palette
+│   ├── sections/                   # Public landing page sections (Hero, FeaturedWork, etc.)
 │   ├── team/
-│   │   ├── DashboardShell.tsx   # Team dashboard navigation & header telemetry
-│   │   └── tabs/                # 9 dashboard modules (Analytics, CMS, RBAC, etc.)
+│   │   ├── DashboardShell.tsx      # Team dashboard navigation, user badge, and live sync radar
+│   │   ├── cms/                    # Live CMS Dashboard, section editors, media uploader
+│   │   └── tabs/                   # 9 Command Center modules (Overview, Projects, Leads, etc.)
 │   └── ui/
-│       ├── CustomCursor.tsx     # Interactive dot & trailing ring cursor
-│       └── RoboticAgent.tsx     # Interactive floating 3D AI assistant
+│       ├── CustomCursor.tsx        # Interactive trailing cursor
+│       └── RoboticAgent.tsx        # Autonomous floating AI guide
 ├── lib/
-│   ├── rbac.ts                  # Dynamic permission evaluation engine
-│   ├── store.ts                 # State management, data schemas & mock seed state
-│   └── supabase.ts              # Supabase client connector
-├── supabase_schema.sql          # Cloud PostgreSQL schema, tables & RLS policies
-├── .env.example                 # Environment variables template
-├── package.json                 # Project dependencies & scripts
-└── tsconfig.json                # TypeScript compiler configuration
+│   ├── auth.ts                     # Session creation, JWT/HMAC cookie verification
+│   ├── mongodb.ts                  # MongoDB connection pool & collection constants
+│   ├── mongodb-client.ts           # Frontend client adapter for MongoDB REST calls
+│   ├── password.ts                 # Cryptographic scrypt password hashing & verification
+│   ├── rbac.ts                     # Dynamic permission evaluation engine
+│   └── store.ts                    # Global store definitions, TypeScript schemas & defaults
+├── scripts/
+│   ├── seed-mongodb.mjs            # Production MongoDB seeding script
+│   └── seed-cms.mjs                # Production CMS sections seeding script
+├── .env.example                    # Environment variables template
+├── package.json                    # Dependencies & npm scripts
+└── tsconfig.json                   # TypeScript compiler configuration
 ```
 
 ---
 
-## 🛡️ Role-Based Access Control (RBAC) Details
+## 🚢 Production Deployment (Vercel)
 
-Technova Studio implements a live permission engine (`lib/rbac.ts`). Permissions include:
-* **Projects:** `canViewAllProjects`, `canCreateProject`, `canEditAnyProject`, `canDeleteProject`, `canAssignMembers`, `canUpdateProjectStatus`, `canConvertInquiryToProject`, `canViewClientFinancials`
-* **Execution:** `canCreateMilestone`, `canCompleteMilestone`, `canLogHours`, `canAddProjectLinks`
-* **Team:** `canViewAllMembers`, `canViewMemberDossier`, `canWriteManagerNotes`, `canEditMemberRoles`, `canToggleMemberPermissions`
-* **CMS & Settings:** `canManagePortfolioCMS`, `canManageAboutUs`, `canManageBookingSettings`
-* **Data:** `canViewDataSheets`, `canEditDataSheets`, `canCreateDataSheets`
-
-Admins can adjust permissions for any non-admin role live from the **RBAC Settings** tab, and changes take effect immediately across all client sessions.
-
----
-
-## 🚢 Production Deployment
-
-### Deploy to Vercel
-
-The fastest way to deploy Technova Studio is using the [Vercel Platform](https://vercel.com):
-
-1. Push your repository to GitHub, GitLab, or Bitbucket.
-2. Import the project into Vercel.
-3. Configure `MONGODB_URI`, `MONGODB_DB`, `AUTH_SESSION_SECRET` (unique random value, at least 32 characters), and `NEXT_PUBLIC_SITE_URL` in the deployment environment. If external lead webhooks are used, also set `LEADS_WEBHOOK_SECRET`.
-4. Seed MongoDB from a trusted environment. Do not rely on browser-local demo state for production data.
-5. Click **Deploy**, then verify login, CMS draft/publish/history, public inquiry submission, and tracking against the deployed database.
-
-Production team login requires MongoDB and a configured session secret; the local demo login fallback is disabled in production. The team session is stored in a signed HttpOnly cookie. Rotate any seeded credentials before using the portal for real operations.
+1. Push your repository to GitHub:
+   ```bash
+   git push origin main
+   ```
+2. Import the project into your [Vercel Dashboard](https://vercel.com).
+3. Configure the following Environment Variables in Vercel:
+   - `MONGODB_URI`: Your production MongoDB Atlas connection string.
+   - `MONGODB_DB`: `technova_studio`
+   - `AUTH_SESSION_SECRET`: A secure random 64-character secret string.
+   - `NEXT_PUBLIC_SITE_URL`: Your live domain (e.g., `https://technova-studio-roan.vercel.app`).
+4. Trigger deployment. Vercel will automatically compile the Next.js Turbopack build.
+5. Verify live operations:
+   - Public Website: `/`
+   - Booking & Candidacy Submissions: Tested with automated deduplication
+   - Live Tracking Portal: `/track`
+   - Command Console Login: `/login` $\rightarrow$ `/team`
 
 ---
 
